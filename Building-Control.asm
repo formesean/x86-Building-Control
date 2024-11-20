@@ -81,13 +81,14 @@ START:
     OUT DX, AL
 
     INIT:
-    MOV AL, 00H
+    MOV AL, 000H        ; just output 00H to PPI
     OUT PORTJ, AL
     CALL INIT_LCD
     CALL SHOW_MENU
     CALL MENU_CHECK_DAVBL
     JMP ENDLESS
 
+    ; MODULE: display menu
     SHOW_MENU:
         MOV AL, 085H        ; set cursor position
         LEA SI, MENU1_STR   ; move strng to display
@@ -145,7 +146,7 @@ START:
         CALL DISPLAY_STR
         JMP CONT
     ROOM2:
-        CALL TEMP_SEN_2
+        MOV ROOM2_FLAG, 1
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM2_STR
@@ -153,10 +154,9 @@ START:
         MOV AL, 094H
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
-        CALL TEMP_SEN_2
         JMP CONT
     ROOM3:
-        CALL TEMP_SEN_3
+        MOV ROOM3_FLAG, 1
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM3_STR
@@ -164,7 +164,6 @@ START:
         MOV AL, 094H
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
-        CALL TEMP_SEN_3
         JMP CONT
     ROOMALL:
         CALL INIT_LCD
@@ -203,13 +202,13 @@ START:
         MOV ADC_CURR, AL
     RET
         AT_ROOM1:
-            MOV AL, 00001000B   ; select analog channel
+            MOV AL, 01H   ; select analog channel
             JMP CONT_ADC
         AT_ROOM2:
-            MOV AL, 00001001B   ; select analog channel
+            MOV AL, 02H
             JMP CONT_ADC
         AT_ROOM3:
-            MOV AL, 00001010B   ; select analog channel
+            MOV AL, 03H
             JMP CONT_ADC
 
 

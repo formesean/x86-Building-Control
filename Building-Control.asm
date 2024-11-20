@@ -55,6 +55,61 @@ ORG 03000H
     T3 DB "3", "$"
     T4 DB "4", "$"
     T5 DB "5", "$"
+    T6 DB "6", "$"
+    T7 DB "7", "$"
+    T8 DB "8", "$"
+    T9 DB "9", "$"
+    T10 DB "10", "$"
+    T11 DB "11", "$"
+    T12 DB "12", "$"
+    T13 DB "13", "$"
+    T14 DB "14", "$"
+    T15 DB "15", "$"
+    T16 DB "16", "$"
+    T17 DB "17", "$"
+    T18 DB "18", "$"
+    T19 DB "19", "$"
+    T20 DB "20", "$"
+    T21 DB "21", "$"
+    T22 DB "22", "$"
+    T23 DB "23", "$"
+    T24 DB "24", "$"
+    T25 DB "25", "$"
+    T26 DB "26", "$"
+    T27 DB "27", "$"
+    T28 DB "28", "$"
+    T29 DB "29", "$"
+    T30 DB "30", "$"
+    T31 DB "31", "$"
+    T32 DB "32", "$"
+    T33 DB "33", "$"
+    T34 DB "34", "$"
+    T35 DB "35", "$"
+    T36 DB "36", "$"
+    T37 DB "37", "$"
+    T38 DB "38", "$"
+    T39 DB "39", "$"
+    T40 DB "40", "$"
+    T41 DB "41", "$"
+    T42 DB "42", "$"
+    T43 DB "43", "$"
+    T44 DB "44", "$"
+    T45 DB "45", "$"
+    T46 DB "46", "$"
+    T47 DB "47", "$"
+    T48 DB "48", "$"
+    T49 DB "49", "$"
+    T50 DB "50", "$"
+    T51 DB "51", "$"
+    T52 DB "52", "$"
+    T53 DB "53", "$"
+    T54 DB "54", "$"
+    T55 DB "55", "$"
+    T56 DB "56", "$"
+    T57 DB "57", "$"
+    T58 DB "58", "$"
+    T59 DB "59", "$"
+    T60 DB "60", "$"
 DATA ENDS
 
 
@@ -136,7 +191,10 @@ START:
 
     ; MODULE: Rooms menu
     ROOM1:
-        MOV ROOM1_FLAG, 1
+        ; MOV ROOM1_FLAG, 1
+        MOV DX, PORTE
+        MOV AL, 01H
+        OUT DX, AL
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM1_STR
@@ -146,7 +204,10 @@ START:
         CALL DISPLAY_STR
         JMP CONT
     ROOM2:
-        MOV ROOM2_FLAG, 1
+        ; MOV ROOM2_FLAG, 1
+        MOV DX, PORTE
+        MOV AL, 02H
+        OUT DX, AL
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM2_STR
@@ -156,7 +217,10 @@ START:
         CALL DISPLAY_STR
         JMP CONT
     ROOM3:
-        MOV ROOM3_FLAG, 1
+        ; MOV ROOM3_FLAG, 1
+        MOV DX, PORTE
+        MOV AL, 04H
+        OUT DX, AL
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM3_STR
@@ -175,6 +239,9 @@ START:
         CALL DISPLAY_STR
         JMP CONT
     BACK:
+        MOV DX, PORTE
+        MOV AL, 00H
+        OUT DX, AL
         JMP INIT
 
         CONT:
@@ -187,16 +254,16 @@ START:
     ;  1   0    0    1    =  TEMPSEN_2
     ;  1   0    1    0    =  TEMPSEN_3
     READ_ADC:
-        MOV DX, PORTE       ; select address decoder port
-        CMP ROOM1_FLAG, 1
-        JE AT_ROOM1
-        CMP ROOM2_FLAG, 1
-        JE AT_ROOM2
-        CMP ROOM3_FLAG, 1
-        JE AT_ROOM3
-        MOV AL, 00H
+        ; MOV DX, PORTE       ; select address decoder port
+        ; CMP ROOM1_FLAG, 1
+        ; JE AT_ROOM1
+        ; CMP ROOM2_FLAG, 1
+        ; JE AT_ROOM2
+        ; CMP ROOM3_FLAG, 1
+        ; JE AT_ROOM3
+        ; MOV AL, 00H
         CONT_ADC:
-        OUT DX, AL
+        ; OUT DX, AL
         MOV DX, PORTD       ; select ADC out port
         IN AL, DX           ; store digital data to AL
         MOV ADC_CURR, AL
@@ -296,10 +363,66 @@ START:
     ADC_DATA_CONVERTER:
         CMP AL, 000H
         JE TEMP_0
-        CMP AL, 080H
+        CMP AL, 002H
         JE TEMP_1
-        CMP AL, 040H
+        CMP AL, 004H
+        JE TEMP_2
+        CMP AL, 005H
         JE TEMP_3
+        CMP AL, 007H
+        JE TEMP_4
+        CMP AL, 009H
+        JE TEMP_5
+        CMP AL, 00AH
+        JE TEMP_6
+        CMP AL, 00CH
+        JE TEMP_7
+        CMP AL, 00EH
+        JE TEMP_8
+        CMP AL, 010H
+        JE TEMP_9
+        CMP AL, 011H
+        JE TEMP_10
+
+        CMP AL, 013H
+        JE TEMP_11
+        CMP AL, 015H
+        JE TEMP_12
+        CMP AL, 016H
+        JE TEMP_13
+        CMP AL, 018H
+        JE TEMP_14
+        CMP AL, 01AH
+        JE TEMP_15
+        CMP AL, 01BH
+        JE TEMP_16
+        CMP AL, 01DH
+        JE TEMP_17
+        CMP AL, 01FH
+        JE TEMP_18
+        CMP AL, 021H
+        JE TEMP_19
+        CMP AL, 022H
+        JE TEMP_20
+
+        CMP AL, 024H
+        JE TEMP_21
+        CMP AL, 026H
+        JE TEMP_22
+        CMP AL, 027H
+        JE TEMP_23
+        CMP AL, 029H
+        JE TEMP_24
+        CMP AL, 02BH
+        JE TEMP_25
+        CMP AL, 02CH
+        JE TEMP_26
+        CMP AL, 02EH
+        JE TEMP_27
+        CMP AL, 030H
+        JE TEMP_28
+        CMP AL, 032H
+        JE TEMP_29
     RET
 
         TEMP_0:
@@ -308,9 +431,91 @@ START:
         TEMP_1:
             LEA SI, T1
         RET
+        TEMP_2:
+            LEA SI, T2
+        RET
         TEMP_3:
             LEA SI, T3
         RET
+        TEMP_4:
+            LEA SI, T4
+        RET
+        TEMP_5:
+            LEA SI, T5
+        RET
+        TEMP_6:
+            LEA SI, T6
+        RET
+        TEMP_7:
+            LEA SI, T7
+        RET
+        TEMP_8:
+            LEA SI, T8
+        RET
+        TEMP_9:
+            LEA SI, T9
+        RET
+        TEMP_10:
+            LEA SI, T10
+        RET
+        TEMP_11:
+            LEA SI, T11
+        RET
+        TEMP_12:
+            LEA SI, T12
+        RET
+        TEMP_13:
+            LEA SI, T13
+        RET
+        TEMP_14:
+            LEA SI, T14
+        RET
+        TEMP_15:
+            LEA SI, T15
+        RET
+        TEMP_16:
+            LEA SI, T16
+        RET
+        TEMP_17:
+            LEA SI, T17
+        RET
+        TEMP_18:
+            LEA SI, T18
+        RET
+        TEMP_19:
+            LEA SI, T19
+        RET
+        TEMP_20:
+            LEA SI, T20
+        RET
+        TEMP_21:
+            LEA SI, T21
+        RET
+        TEMP_22:
+            LEA SI, T22
+        RET
+        TEMP_23:
+            LEA SI, T23
+        RET
+        TEMP_24:
+            LEA SI, T24
+        RET
+        TEMP_25:
+            LEA SI, T25
+        RET
+        TEMP_26:
+            LEA SI, T26
+        RET
+        TEMP_27:
+            LEA SI, T27
+        RET
+        TEMP_28:
+            LEA SI, T28
+        RET
+        TEMP_29:
+            LEA SI, T29
+        RET
+
 
 
     DELAY_1MS:  MOV BX, 02CAH

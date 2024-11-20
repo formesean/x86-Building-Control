@@ -45,7 +45,16 @@ ORG 03000H
     PLACEHOLDER DB "PLACEHOLDER", "$"
 
     ; Data Variables
-    TEMP DB 0
+    ROOM1_FLAG DB 0
+    ROOM2_FLAG DB 0
+    ROOM3_FLAG DB 0
+    ADC_CURR DB 0
+    T0 DB "0", "$"
+    T1 DB "1", "$"
+    T2 DB "2", "$"
+    T3 DB "3", "$"
+    T4 DB "4", "$"
+    T5 DB "5", "$"
 DATA ENDS
 
 
@@ -65,7 +74,7 @@ START:
     MOV AL, 10001001B
     OUT DX, AL
     MOV DX, COM_REG2
-    MOV AL, 10011011B
+    MOV AL, 10001001B
     OUT DX, AL
     MOV DX, COM_REG4
     MOV AL, 10001001B
@@ -99,6 +108,12 @@ START:
 
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
+        CALL READ_ADC
+        MOV AL, ADC_CURR
+        CALL ADC_DATA_CONVERTER
+        MOV AL, 0A1H
+        CALL DISPLAY_STR
+
         MOV DX, PORTC
         IN AL, DX; read PORTC
         TEST AL, 10H ; check if DAVBL is high
@@ -120,7 +135,7 @@ START:
 
     ; MODULE: Rooms menu
     ROOM1:
-        CALL TEMP_SEN_1
+        MOV ROOM1_FLAG, 1
         CALL INIT_LCD
         MOV AL, 080H
         LEA SI, ROOM1_STR
@@ -138,6 +153,7 @@ START:
         MOV AL, 094H
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
+        CALL TEMP_SEN_2
         JMP CONT
     ROOM3:
         CALL TEMP_SEN_3
@@ -148,6 +164,7 @@ START:
         MOV AL, 094H
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
+        CALL TEMP_SEN_3
         JMP CONT
     ROOMALL:
         CALL INIT_LCD
@@ -165,23 +182,56 @@ START:
             CALL DELAY_1MS
             JMP MENU_CHECK_DAVBL
 
-    ; MODULE: fetch data from temperature sensor
+    ; MODULE: fetch data from temperature sensor using ADC
+    ; ALE ADDC ADDB ADDA
+    ;  1   0    0    0    =  TEMPSEN_1
+    ;  1   0    0    1    =  TEMPSEN_2
+    ;  1   0    1    0    =  TEMPSEN_3
+    READ_ADC:
+        MOV DX, PORTE       ; select address decoder port
+        CMP ROOM1_FLAG, 1
+        JE AT_ROOM1
+        CMP ROOM2_FLAG, 1
+        JE AT_ROOM2
+        CMP ROOM3_FLAG, 1
+        JE AT_ROOM3
+        MOV AL, 00H
+        CONT_ADC:
+        OUT DX, AL
+        MOV DX, PORTD       ; select ADC out port
+        IN AL, DX           ; store digital data to AL
+        MOV ADC_CURR, AL
+    RET
+        AT_ROOM1:
+            MOV AL, 00001000B   ; select analog channel
+            JMP CONT_ADC
+        AT_ROOM2:
+            MOV AL, 00001001B   ; select analog channel
+            JMP CONT_ADC
+        AT_ROOM3:
+            MOV AL, 00001010B   ; select analog channel
+            JMP CONT_ADC
+
+
     TEMP_SEN_1:
+        CALL ADC_DATA_CONVERTER
+        MOV AL, 0A1H
+        CALL DISPLAY_STR
+    RET
+    TEMP_SEN_2:
+        MOV DX, PORTE
+        MOV AL, 00001001B
+        OUT DX, AL
         MOV DX, PORTD
         IN AL, DX
         MOV DX, PORTJ
         OUT DX, AL
     RET
-
-    TEMP_SEN_2:
-        MOV DX, PORTE
-        IN AL, DX
-        MOV DX, PORTJ
-        OUT DX, AL
-    RET
-
     TEMP_SEN_3:
-        MOV DX, PORTF
+        MOV DX, PORTE
+        MOV AL, 00001010B
+        OUT DX, AL
+        MOV DX, PORTD
         IN AL, DX
         MOV DX, PORTJ
         OUT DX, AL
@@ -232,6 +282,7 @@ START:
         CALL INST_CTRL ; write instruction to LCD
     RET
 
+    ; MODULE: Displays a string from SI
     DISPLAY_STR: CALL INST_CTRL
     DISP:
         MOV AL, [SI]
@@ -241,6 +292,27 @@ START:
         INC SI
         JMP DISP
     RET
+
+    ; MODULE: Convert the digital data from ADC to a string format
+    ADC_DATA_CONVERTER:
+        CMP AL, 000H
+        JE TEMP_0
+        CMP AL, 080H
+        JE TEMP_1
+        CMP AL, 040H
+        JE TEMP_3
+    RET
+
+        TEMP_0:
+            LEA SI, T0
+        RET
+        TEMP_1:
+            LEA SI, T1
+        RET
+        TEMP_3:
+            LEA SI, T3
+        RET
+
 
     DELAY_1MS:  MOV BX, 02CAH
     L1:

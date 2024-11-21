@@ -40,25 +40,37 @@ ORG 03000H
     ROOM1_STR DB "Room 1 ", "$"
     ROOM2_STR DB "Room 2 ", "$"
     ROOM3_STR DB "Room 3 ", "$"
+    ROOM1_FAN1_STR DB "Fan 1: ", "$"
+    ROOM1_FAN2_STR DB "Fan 2: ", "$"
+    ROOM2_FAN1_STR DB "Fan 1: ", "$"
+    ROOM2_FAN2_STR DB "Fan 2: ", "$"
+    ROOM3_FAN1_STR DB "Fan 1: ", "$"
+    ROOM3_FAN2_STR DB "Fan 2: ", "$"
     ROOMALL_STR DB "All Rooms", "$"
+    FAN_ON_STR DB "[ON] ", "$"
+    FAN_OFF_STR DB "[OFF]", "$"
     TEMP_STR DB "Temperature: ", "$"
     PLACEHOLDER DB "PLACEHOLDER", "$"
 
     ; Data Variables
-    ROOM1_FLAG DB 0
-    ROOM2_FLAG DB 0
-    ROOM3_FLAG DB 0
+    AT_ROOM_FLAG DB 0
     ADC_CURR DB 0
-    T0 DB "0", "$"
-    T1 DB "1", "$"
-    T2 DB "2", "$"
-    T3 DB "3", "$"
-    T4 DB "4", "$"
-    T5 DB "5", "$"
-    T6 DB "6", "$"
-    T7 DB "7", "$"
-    T8 DB "8", "$"
-    T9 DB "9", "$"
+    FAN1_FLAG DB 0
+    FAN2_FLAG DB 0
+    FAN3_FLAG DB 0
+    FAN4_FLAG DB 0
+    FAN5_FLAG DB 0
+    FAN6_FLAG DB 0
+    T0 DB "0 ", "$"
+    T1 DB "1 ", "$"
+    T2 DB "2 ", "$"
+    T3 DB "3 ", "$"
+    T4 DB "4 ", "$"
+    T5 DB "5 ", "$"
+    T6 DB "6 ", "$"
+    T7 DB "7 ", "$"
+    T8 DB "8 ", "$"
+    T9 DB "9 ", "$"
     T10 DB "10", "$"
     T11 DB "11", "$"
     T12 DB "12", "$"
@@ -131,12 +143,15 @@ START:
     MOV DX, COM_REG2
     MOV AL, 10001001B
     OUT DX, AL
+    MOV DX, COM_REG3
+    MOV AL, 10000000B
+    OUT DX, AL
     MOV DX, COM_REG4
     MOV AL, 10001001B
     OUT DX, AL
 
     INIT:
-    MOV AL, 000H        ; just output 00H to PPI
+    MOV AL, 00H        ; just output 00H to PPI
     OUT PORTJ, AL
     CALL INIT_LCD
     CALL SHOW_MENU
@@ -164,12 +179,18 @@ START:
 
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
+        ; MOV DX, PORTH
+        ; MOV AL, 04H
+        ; OUT DX, AL
+        CMP AT_ROOM_FLAG, 1
+        JNE CONT_MENU
         CALL READ_ADC
         MOV AL, ADC_CURR
         CALL ADC_DATA_CONVERTER
-        MOV AL, 0A1H
+        MOV AL, 0E1H
         CALL DISPLAY_STR
 
+        CONT_MENU:
         MOV DX, PORTC
         IN AL, DX; read PORTC
         TEST AL, 10H ; check if DAVBL is high
@@ -184,48 +205,90 @@ START:
         JE ROOM3 ; go to room 3 menu
         CMP AL, 04H ; check if key pressed is 3 (02H)
         JE ROOMALL ; go to room all menu
+        CMP AL, 08H ; check if key pressed is 7 (08H)
+        JE FAN_1 ; go to FAN_1 module
+        CMP AL, 0AH ; check if key pressed is 9 (0AH)
+        JE FAN_2 ; go to FAN_2 module
         CMP AL, 0EH ; check if key pressed is # (0EH)
         JE BACK ; go back to menu
+        CALL DELAY_1MS
+        CALL DELAY_1MS
         CALL DELAY_1MS
         JMP MENU_CHECK_DAVBL
 
     ; MODULE: Rooms menu
     ROOM1:
-        ; MOV ROOM1_FLAG, 1
+        MOV AT_ROOM_FLAG, 1
         MOV DX, PORTE
         MOV AL, 01H
         OUT DX, AL
         CALL INIT_LCD
-        MOV AL, 080H
+        MOV AL, 080H                ; displays "Room 1"
         LEA SI, ROOM1_STR
         CALL DISPLAY_STR
-        MOV AL, 094H
+        MOV AL, 0C0H                ; displays "Fan 1: "
+        LEA SI, ROOM1_FAN1_STR
+        CALL DISPLAY_STR
+        MOV AL, 0C7H                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 094H                ; displays "Fan 2: "
+        LEA SI, ROOM1_FAN2_STR
+        CALL DISPLAY_STR
+        MOV AL, 09BH                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 0D4H                ; displays "Temperature: "
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
         JMP CONT
     ROOM2:
-        ; MOV ROOM2_FLAG, 1
+        MOV AT_ROOM_FLAG, 1
         MOV DX, PORTE
         MOV AL, 02H
         OUT DX, AL
         CALL INIT_LCD
-        MOV AL, 080H
+        MOV AL, 080H                ; displays "Room 2"
         LEA SI, ROOM2_STR
         CALL DISPLAY_STR
-        MOV AL, 094H
+        MOV AL, 0C0H                ; displays "Fan 1: "
+        LEA SI, ROOM2_FAN1_STR
+        CALL DISPLAY_STR
+        MOV AL, 0C7H                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 094H                ; displays "Fan 2: "
+        LEA SI, ROOM2_FAN2_STR
+        CALL DISPLAY_STR
+        MOV AL, 09BH                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 0D4H                ; displays "Temperature: "
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
         JMP CONT
     ROOM3:
-        ; MOV ROOM3_FLAG, 1
+        MOV AT_ROOM_FLAG, 1
         MOV DX, PORTE
-        MOV AL, 04H
+        MOV AL, 03H
         OUT DX, AL
         CALL INIT_LCD
-        MOV AL, 080H
-        LEA SI, ROOM3_STR
+        MOV AL, 080H                ; displays "Room 3"
+        LEA SI, ROOM1_STR
         CALL DISPLAY_STR
-        MOV AL, 094H
+        MOV AL, 0C0H                ; displays "Fan 1: "
+        LEA SI, ROOM3_FAN1_STR
+        CALL DISPLAY_STR
+        MOV AL, 0C7H                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 094H                ; displays "Fan 2: "
+        LEA SI, ROOM3_FAN2_STR
+        CALL DISPLAY_STR
+        MOV AL, 09BH                ; displays "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        MOV AL, 0D4H                ; displays "Temperature: "
         LEA SI, TEMP_STR
         CALL DISPLAY_STR
         JMP CONT
@@ -239,68 +302,93 @@ START:
         CALL DISPLAY_STR
         JMP CONT
     BACK:
+        MOV AT_ROOM_FLAG, 0
         MOV DX, PORTE
         MOV AL, 00H
         OUT DX, AL
         JMP INIT
+    FAN_1:
+        CMP FAN1_FLAG, 1
+        JE RESET_FAN1_FLAG
+        CMP FAN2_FLAG, 1
+        JE FANS_ROOM1
+        MOV FAN1_FLAG, 1
+        MOV DX, PORTI
+        MOV AL, 01H
+        OUT DX, AL
+        MOV AL, 0C7H                ; Update LCD to display "[ON] "
+        LEA SI, FAN_ON_STR
+        CALL DISPLAY_STR
+        JMP EXIT_FAN_1
+        FANS_ROOM1:
+            MOV DX, PORTI
+            MOV AL, 03H
+            OUT DX, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP EXIT_FAN_1
+        RESET_FAN1_FLAG:
+            MOV FAN1_FLAG, 0
+            MOV DX, PORTI
+            MOV AL, 00H
+            OUT DX, AL
+            MOV AL, 0C7H                ; Update LCD to display "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+        EXIT_FAN_1:
+        JMP CONT
+    FAN_2:
+        CMP FAN2_FLAG, 1
+        JE RESET_FAN2_FLAG
+        CMP FAN1_FLAG, 1
+        JE FANS_ROOM2
+        MOV FAN2_FLAG, 1
+        MOV DX, PORTI
+        MOV AL, 02H
+        OUT DX, AL
+        MOV AL, 0C7H                ; Update LCD to display "[OFF]"
+        LEA SI, FAN_OFF_STR
+        CALL DISPLAY_STR
+        JMP EXIT_FAN_2
+        FANS_ROOM2:
+            MOV DX, PORTI
+            MOV AL, 03H
+            OUT DX, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP EXIT_FAN_2
+        RESET_FAN2_FLAG:
+            MOV FAN2_FLAG, 0
+            MOV DX, PORTI
+            MOV AL, 00H
+            OUT DX, AL
+            MOV AL, 09BH                ; Update LCD to display "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+        EXIT_FAN_2:
+        JMP CONT
 
         CONT:
             CALL DELAY_1MS
             JMP MENU_CHECK_DAVBL
 
     ; MODULE: fetch data from temperature sensor using ADC
-    ; ALE ADDC ADDB ADDA
-    ;  1   0    0    0    =  TEMPSEN_1
-    ;  1   0    0    1    =  TEMPSEN_2
-    ;  1   0    1    0    =  TEMPSEN_3
+    ; ADDC ADDB ADDA
+    ;  0    0    0    =  TEMPSEN_1
+    ;  0    0    1    =  TEMPSEN_2
+    ;  0    1    0    =  TEMPSEN_3
     READ_ADC:
-        ; MOV DX, PORTE       ; select address decoder port
-        ; CMP ROOM1_FLAG, 1
-        ; JE AT_ROOM1
-        ; CMP ROOM2_FLAG, 1
-        ; JE AT_ROOM2
-        ; CMP ROOM3_FLAG, 1
-        ; JE AT_ROOM3
-        ; MOV AL, 00H
-        CONT_ADC:
-        ; OUT DX, AL
         MOV DX, PORTD       ; select ADC out port
         IN AL, DX           ; store digital data to AL
         MOV ADC_CURR, AL
-    RET
-        AT_ROOM1:
-            MOV AL, 01H   ; select analog channel
-            JMP CONT_ADC
-        AT_ROOM2:
-            MOV AL, 02H
-            JMP CONT_ADC
-        AT_ROOM3:
-            MOV AL, 03H
-            JMP CONT_ADC
-
-
-    TEMP_SEN_1:
-        CALL ADC_DATA_CONVERTER
-        MOV AL, 0A1H
-        CALL DISPLAY_STR
-    RET
-    TEMP_SEN_2:
-        MOV DX, PORTE
-        MOV AL, 00001001B
-        OUT DX, AL
-        MOV DX, PORTD
-        IN AL, DX
-        MOV DX, PORTJ
-        OUT DX, AL
-    RET
-    TEMP_SEN_3:
-        MOV DX, PORTE
-        MOV AL, 00001010B
-        OUT DX, AL
-        MOV DX, PORTD
-        IN AL, DX
-        MOV DX, PORTJ
-        OUT DX, AL
     RET
 
     ; MODULE: Endless loop

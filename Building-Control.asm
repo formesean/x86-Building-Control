@@ -338,9 +338,9 @@ START:
         MOV AT_ROOM2_FLAG, 0
         MOV AT_ROOM3_FLAG, 0
         MOV AT_ROOMS_FLAG, 0
-        MOV DX, PORTE
         MOV AL, 00H
-        OUT DX, AL
+        OUT PORTE, AL
+        OUT PORTH, AL
         JMP INIT
     FIRST_FAN:
         CMP AT_ROOM1_FLAG, 1
@@ -595,6 +595,14 @@ START:
     ADC_DATA_CONVERTER:
         MOV AL, ADC_CURR
         CMP AL, 01BH
+        JL BUZZER
+        CMP AL, 033H
+        JG BUZZER
+        MOV AL, 00H
+        OUT PORTH, AL
+
+        MOV AL, ADC_CURR
+        CMP AL, 01BH
         JE TEMP_16
         CMP AL, 01DH
         JE TEMP_17
@@ -625,6 +633,11 @@ START:
         CMP AL, 033H
         JE TEMP_30
     RET
+        BUZZER:
+            MOV DX, PORTH
+            MOV AL, 02H
+            OUT DX, AL
+        RET
         HANDLE_ROOM:
             CMP AT_ROOM1_FLAG, 1
             JE ROOM01

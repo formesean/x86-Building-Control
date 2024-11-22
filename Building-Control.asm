@@ -1,3 +1,43 @@
+PROCED1 SEGMENT 'CODE'
+ISR1 PROC FAR
+ASSUME CS:PROCED1, DS:DATA
+ORG 00000H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    MOV AL , 00H
+    OUT PORTJ, AL
+    MOV FAN1_FLAG, 0
+    MOV FAN2_FLAG, 0
+    MOV ROOM1_WARNING_FLAG, 0
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR1 ENDP
+PROCED1 ENDS
+
+
+PROCED2 SEGMENT 'CODE'
+ISR2 PROC FAR
+ASSUME CS:PROCED2, DS:DATA
+ORG 00100H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    MOV AL , 00H
+    OUT PORTL, AL
+    MOV FAN3_FLAG, 0
+    MOV FAN4_FLAG, 0
+    MOV ROOM2_WARNING_FLAG, 0
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR2 ENDP
+PROCED2 ENDS
+
+
 DATA SEGMENT
 ORG 03000H
     ; LCD & Keypad PPI
@@ -6,13 +46,13 @@ ORG 03000H
     PORTC EQU 0D4H
     COM_REG1 EQU 0D6H
 
-    ; ADC PPI
+    ; ADC & Interrupt PPI
     PORTD EQU 0D8H
     PORTE EQU 0DAH
     PORTF EQU 0DCH
     COM_REG2 EQU 0DEH
 
-    ; Output PPI
+    ; Timer & Buzzer PPI
     PORTG EQU 0E0H
     PORTH EQU 0E2H
     PORTI EQU 0E4H
@@ -31,10 +71,14 @@ ORG 03000H
     ; 8259 PIC
     PIC1 EQU 0C8H
     PIC2 EQU 0CAH
+    ICW1 EQU 013H
+    ICW2 EQU 080H
+    ICW4 EQU 003H
+    OCW1 EQU 0FAH	;1111 1010 = FA
 
-    ; ; 8253 Timer
-    ; PORT_T EQU 0C0H
-    ; COM_REG_T EQU 0C6H
+    ; 8253 Timer
+    PORT_T EQU 0C0H
+    COM_REGT EQU 0C6H
 
     ; Strings to be displayed on LCD
     MENU1_STR DB "Room 1 [1]", "$"
@@ -57,6 +101,7 @@ ORG 03000H
     FAN_ON_STR DB "[ON] ", "$"
     FAN_OFF_STR DB "[OFF]", "$"
     TEMP_STR DB "Temperature: ", "$"
+    WARNING_STR DB "Temperature Warning!", "$"
 
     ; Data Variables
     AT_ROOM_FLAG DB 0
@@ -71,6 +116,12 @@ ORG 03000H
     FAN4_FLAG DB 0
     FAN5_FLAG DB 0
     FAN6_FLAG DB 0
+    ROOM1_FANS_STATE DB 00H
+    ROOM2_FANS_STATE DB 00H
+    ROOM3_FANS_STATE DB 00H
+    ROOM1_WARNING_FLAG DB 0
+    ROOM2_WARNING_FLAG DB 0
+    ROOM3_WARNING_FLAG DB 0
     T16 DB "16", "$"
     T17 DB "17", "$"
     T18 DB "18", "$"
@@ -100,28 +151,58 @@ CODE SEGMENT PUBLIC 'CODE'
     ORG 08000H
 
 START:
-    ; configure PPIs
+    MOV AX, DATA
+    MOV DS, AX		; set the Data Segment address
+    MOV AX, STK
+    MOV SS, AX		; set the Stack Segment address
+    LEA SP, TOS		; set SP as Top of Stack
+    CLI
+
+    ; configure 8255 PPIs
     MOV DX, COM_REG1
     MOV AL, 10001001B
+    OUT DX, AL
+    MOV DX, COM_REG3
+    MOV AL, 10000010B
     OUT DX, AL
     MOV DX, COM_REG2
     MOV AL, 10000000B
     OUT DX, AL
-    MOV DX, COM_REG3
-    MOV AL, 10000000B
-    OUT DX, AL
     MOV DX, COM_REG4
-    MOV AL, 10000000B
     OUT DX, AL
     MOV DX, COM_REG5
-    MOV AL, 10000000B
     OUT DX, AL
 
-    INIT:
-    CALL INIT_LCD
-    CALL SHOW_MENU
-    CALL MENU_CHECK_DAVBL
-    JMP ENDLESS
+    ; configure 8283 Timer
+    MOV AL, 00111000B
+    OUT COM_REGT, AL
+
+    ; configure 8259 PIC
+    MOV AL, ICW1
+    OUT PIC1, AL
+    MOV AL, ICW2
+    OUT PIC2, AL
+    MOV AL, ICW4
+    OUT PIC2, AL
+    MOV AL, OCW1
+    OUT PIC2, AL
+    STI
+
+    ; Storing interrupt vector to interrupt vector table in memory
+    MOV AX, OFFSET ISR1
+    MOV [ES:200H], AX
+    MOV AX, SEG ISR1
+    MOV [ES:202H], AX
+    MOV AX, OFFSET ISR2
+    MOV [ES:204H], AX
+    MOV AX, SEG ISR2
+    MOV [ES:206H], AX
+
+    HERE:
+        CALL INIT_LCD
+        CALL SHOW_MENU
+        CALL MENU_CHECK_DAVBL
+    JMP HERE
 
     ; MODULE: display menu
     SHOW_MENU:
@@ -144,6 +225,8 @@ START:
 
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
+        CMP ROOM1_WARNING_FLAG, 1
+        JE ROOM1_WARNING
         CMP AT_ROOM_FLAG, 1
         JNE CONT_MENU
         CALL READ_ADC
@@ -340,8 +423,8 @@ START:
         MOV AT_ROOMS_FLAG, 0
         MOV AL, 00H
         OUT PORTE, AL
-        OUT PORTH, AL
-        JMP INIT
+        OUT PORTG, AL
+        JMP HERE
     FIRST_FAN:
         CMP AT_ROOM1_FLAG, 1
         JE AT_ROOM1_1
@@ -355,64 +438,118 @@ START:
         AT_ROOM1_1:
             CMP FAN1_FLAG, 1
             JE RESET_FAN1_FLAG
+            CMP FAN2_FLAG, 1
+            JE FANS_ROOM1_1
             MOV FAN1_FLAG, 1
-            MOV DX, PORTJ
             MOV AL, 01H
-            OUT DX, AL
+            OUT PORTJ, AL
             MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM1_1
+            FANS_ROOM1_1:
+            MOV FAN1_FLAG, 1
+            MOV FAN2_FLAG, 1
+            MOV AL, 03H
+            OUT PORTJ, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_AT_ROOM1_1
             RESET_FAN1_FLAG:
             MOV FAN1_FLAG, 0
-            MOV DX, PORTJ
             MOV AL, 00H
-            OUT DX, AL
+            OUT PORTJ, AL
             MOV AL, 0C7H                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN2_FLAG, 1
+            JE OFF_FAN1_ONLY
+            JMP CONT_AT_ROOM1_1
+            OFF_FAN1_ONLY:
+            MOV AL, 02H
+            OUT PORTJ, AL
             CONT_AT_ROOM1_1:
             JMP CONT
         AT_ROOM2_1:
             CMP FAN3_FLAG, 1
             JE RESET_FAN3_FLAG
+            CMP FAN4_FLAG, 1
+            JE FANS_ROOM2_1
             MOV FAN3_FLAG, 1
-            MOV DX, PORTL
             MOV AL, 01H
-            OUT DX, AL
+            OUT PORTL, AL
             MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM2_1
+            FANS_ROOM2_1:
+            MOV FAN3_FLAG, 1
+            MOV FAN4_FLAG, 1
+            MOV AL, 03H
+            OUT PORTL, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_AT_ROOM2_1
             RESET_FAN3_FLAG:
             MOV FAN3_FLAG, 0
-            MOV DX, PORTL
             MOV AL, 00H
-            OUT DX, AL
+            OUT PORTL, AL
             MOV AL, 0C7H                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN4_FLAG, 1
+            JE OFF_FAN3_ONLY
+            JMP CONT_AT_ROOM2_1
+            OFF_FAN3_ONLY:
+            MOV AL, 02H
+            OUT PORTL, AL
             CONT_AT_ROOM2_1:
             JMP CONT
         AT_ROOM3_1:
             CMP FAN5_FLAG, 1
             JE RESET_FAN5_FLAG
+            CMP FAN6_FLAG, 1
+            JE FANS_ROOM3_1
             MOV FAN5_FLAG, 1
-            MOV DX, PORTN
             MOV AL, 01H
-            OUT DX, AL
+            OUT PORTN, AL
             MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM3_1
+            FANS_ROOM3_1:
+            MOV FAN5_FLAG, 1
+            MOV FAN6_FLAG, 1
+            MOV AL, 03H
+            OUT PORTN, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_AT_ROOM3_1
             RESET_FAN5_FLAG:
             MOV FAN5_FLAG, 0
-            MOV DX, PORTN
             MOV AL, 00H
-            OUT DX, AL
+            OUT PORTN, AL
             MOV AL, 0C7H                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN6_FLAG, 1
+            JE OFF_FAN5_ONLY
+            JMP CONT_AT_ROOM3_1
+            OFF_FAN5_ONLY:
+            MOV AL, 02H
+            OUT PORTN, AL
             CONT_AT_ROOM3_1:
             JMP CONT
         AT_ROOMS:
@@ -454,31 +591,63 @@ START:
         AT_ROOM1_2:
             CMP FAN2_FLAG, 1
             JE RESET_FAN2_FLAG
+            CMP FAN1_FLAG, 1
+            JE FANS_ROOM1_2
             MOV FAN2_FLAG, 1
-            MOV DX, PORTJ
             MOV AL, 02H
-            OUT DX, AL
+            OUT PORTJ, AL
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM1_2
+            FANS_ROOM1_2:
+            MOV FAN1_FLAG, 1
+            MOV FAN2_FLAG, 1
+            MOV AL, 03H
+            OUT PORTJ, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
             MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_AT_ROOM1_2
             RESET_FAN2_FLAG:
             MOV FAN2_FLAG, 0
-            MOV DX, PORTJ
             MOV AL, 00H
-            OUT DX, AL
+            OUT PORTJ, AL
             MOV AL, 09BH                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN1_FLAG, 1
+            JE OFF_FAN2_ONLY
+            JMP CONT_AT_ROOM1_2
+            OFF_FAN2_ONLY:
+            MOV AL, 01H
+            OUT PORTJ, AL
             CONT_AT_ROOM1_2:
             JMP CONT
         AT_ROOM2_2:
             CMP FAN4_FLAG, 1
             JE RESET_FAN4_FLAG
+            CMP FAN3_FLAG, 1
+            JE FANS_ROOM2_2
             MOV FAN4_FLAG, 1
             MOV DX, PORTL
             MOV AL, 02H
             OUT DX, AL
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM2_2
+            FANS_ROOM2_2:
+            MOV FAN3_FLAG, 1
+            MOV FAN4_FLAG, 1
+            MOV AL, 03H
+            OUT PORTL, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
             MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
@@ -491,29 +660,75 @@ START:
             MOV AL, 09BH                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN3_FLAG, 1
+            JE OFF_FAN4_ONLY
+            JMP CONT_AT_ROOM2_2
+            OFF_FAN4_ONLY:
+            MOV AL, 01H
+            OUT PORTL, AL
             CONT_AT_ROOM2_2:
             JMP CONT
         AT_ROOM3_2:
             CMP FAN6_FLAG, 1
             JE RESET_FAN6_FLAG
+            CMP FAN5_FLAG, 1
+            JE FANS_ROOM3_2
             MOV FAN6_FLAG, 1
-            MOV DX, PORTN
             MOV AL, 02H
-            OUT DX, AL
+            OUT PORTN, AL
+            MOV AL, 09BH                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
+            JMP CONT_AT_ROOM3_2
+            FANS_ROOM3_2:
+            MOV FAN5_FLAG, 1
+            MOV FAN6_FLAG, 1
+            MOV AL, 03H
+            OUT PORTN, AL
+            MOV AL, 0C7H                ; Update LCD to display "[ON] "
+            LEA SI, FAN_ON_STR
+            CALL DISPLAY_STR
             MOV AL, 09BH                ; Update LCD to display "[ON] "
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_AT_ROOM3_2
             RESET_FAN6_FLAG:
             MOV FAN6_FLAG, 0
-            MOV DX, PORTN
             MOV AL, 00H
-            OUT DX, AL
+            OUT PORTN, AL
             MOV AL, 09BH                ; Update LCD to display "[OFF]"
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
+            CMP FAN5_FLAG, 1
+            JE OFF_FAN6_ONLY
+            JMP CONT_AT_ROOM3_2
+            OFF_FAN6_ONLY:
+            MOV AL, 01H
+            OUT PORTN, AL
             CONT_AT_ROOM3_2:
             JMP CONT
+    ROOM1_WARNING:
+        ; CALL INIT_LCD
+        MOV AL, 01H
+        OUT PORTF, AL
+        MOV AL, 00H
+        OUT PORTF, AL
+        ; MOV AL, 0D4H
+        ; LEA SI, WARNING_STR
+        ; CALL DISPLAY_STR
+        JMP CONT
+    ROOM2_WARNING:
+        MOV AL, 02H
+        OUT PORTF, AL
+        MOV AL, 00H
+        OUT PORTF, AL
+        JMP CONT
+    ROOM3_WARNING:
+        MOV AL, 04H
+        OUT PORTF, AL
+        MOV AL, 00H
+        OUT PORTF, AL
+        JMP CONT
 
         CONT:
             CALL DELAY_1MS
@@ -599,7 +814,7 @@ START:
         CMP AL, 033H
         JG BUZZER
         MOV AL, 00H
-        OUT PORTH, AL
+        OUT PORTG, AL
 
         MOV AL, ADC_CURR
         CMP AL, 01BH
@@ -634,10 +849,26 @@ START:
         JE TEMP_30
     RET
         BUZZER:
-            MOV DX, PORTH
+            CMP FAN1_FLAG, 1
+            JE BUZZER_ON
+            CMP FAN2_FLAG, 1
+            JE BUZZER_ON
+            CMP FAN3_FLAG, 1
+            JE BUZZER_ON
+            CMP FAN4_FLAG, 1
+            JE BUZZER_ON
+            CMP FAN5_FLAG, 1
+            JE BUZZER_ON
+            CMP FAN6_FLAG, 1
+            JE BUZZER_ON
+        RET
+        BUZZER_ON:
+            MOV ROOM1_WARNING_FLAG, 1
+            MOV DX, PORTG
             MOV AL, 02H
             OUT DX, AL
         RET
+
         HANDLE_ROOM:
             CMP AT_ROOM1_FLAG, 1
             JE ROOM01
@@ -752,6 +983,59 @@ START:
             OUT DX, AL
             LEA SI, T30
         RET
+
+    ; MODULE: Timer Control
+    TIMER_CTRL:
+    CMP CX, 03H
+    JE D3
+    CMP CX, 02H
+    JE D2
+    CMP CX, 01H
+    JE D1
+    RESUME:
+        CALL DELAY_1S
+        DEC CX
+        CMP CX, 00H
+        JNZ TIMER_CTRL
+    RET
+
+    ; MODULES: Display the number of seconds
+    D1:
+        MOV AL, 09EH 	; set cursor location
+        CALL INST_CTRL	; send instruction to LCD
+        MOV AL, '1' ; display ‘1‘
+        JMP CONT
+    D2:
+        MOV AL, 09EH 	; set cursor location
+        CALL INST_CTRL	; send instruction to LCD
+        MOV AL, '2' ; display ‘2‘
+        JMP CONT
+    D3:
+        MOV AL, 09EH 	; set cursor location
+        CALL INST_CTRL	; send instruction to LCD
+        MOV AL, '3' ; display ‘3‘
+        JMP CONT
+    CONT2:
+      CALL DISPLAY_STR
+      CALL DELAY_1MS
+      JMP RESUME
+
+
+    ; MODULE: Timer
+    DELAY_1S:
+        MOV DX, PORT_T	; access 8253 timer
+        MOV AL, 0A0H
+        OUT DX, AL
+        MOV AL, 0FH
+        OUT DX, AL
+        LOCK_INPUT:
+            MOV DX, PORTH
+            IN AX, DX
+            XOR AH, AH
+            AND AL, 01H
+            CMP AL, 00H	; checks if remaining time is 0
+            JNE LOCK_INPUT
+    RET
 
 
     DELAY_1MS:  MOV BX, 02CAH

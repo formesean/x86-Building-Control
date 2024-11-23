@@ -38,6 +38,26 @@ ISR2 ENDP
 PROCED2 ENDS
 
 
+PROCED3 SEGMENT 'CODE'
+ISR3 PROC FAR
+ASSUME CS:PROCED3, DS:DATA
+ORG 00200H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    MOV AL , 00Hs
+    OUT PORTN, AL
+    MOV FAN5_FLAG, 0
+    MOV FAN6_FLAG, 0
+    MOV ROOM3_WARNING_FLAG, 0
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR3 ENDP
+PROCED3 ENDS
+
+
 DATA SEGMENT
 ORG 03000H
     ; LCD & Keypad PPI
@@ -74,7 +94,7 @@ ORG 03000H
     ICW1 EQU 013H
     ICW2 EQU 080H
     ICW4 EQU 003H
-    OCW1 EQU 0FAH	;1111 1010 = FA
+    OCW1 EQU 0F8H	;1111 1000 = F8
 
     ; 8253 Timer
     PORT_T EQU 0C0H
@@ -102,6 +122,7 @@ ORG 03000H
     FAN_OFF_STR DB "[OFF]", "$"
     TEMP_STR DB "Temperature: ", "$"
     WARNING_STR DB "Temperature Warning!", "$"
+    CLEAR_BOTTOM DB "      ", "$"
 
     ; Data Variables
     AT_ROOM_FLAG DB 0
@@ -165,8 +186,8 @@ START:
     MOV DX, COM_REG3
     MOV AL, 10000010B
     OUT DX, AL
-    MOV DX, COM_REG2
     MOV AL, 10000000B
+    MOV DX, COM_REG2
     OUT DX, AL
     MOV DX, COM_REG4
     OUT DX, AL
@@ -197,6 +218,10 @@ START:
     MOV [ES:204H], AX
     MOV AX, SEG ISR2
     MOV [ES:206H], AX
+    MOV AX, OFFSET ISR3
+    MOV [ES:208H], AX
+    MOV AX, SEG ISR3
+    MOV [ES:20AH], AX
 
     HERE:
         CALL INIT_LCD
@@ -227,6 +252,10 @@ START:
     MENU_CHECK_DAVBL:
         CMP ROOM1_WARNING_FLAG, 1
         JE ROOM1_WARNING
+        CMP ROOM2_WARNING_FLAG, 1
+        JE ROOM2_WARNING
+        CMP ROOM3_WARNING_FLAG, 1
+        JE ROOM3_WARNING
         CMP AT_ROOM_FLAG, 1
         JNE CONT_MENU
         CALL READ_ADC
@@ -291,9 +320,6 @@ START:
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
         CONT_ROOM1:
-            MOV AL, 0D4H                ; displays "Temperature: "
-            LEA SI, TEMP_STR
-            CALL DISPLAY_STR
             JMP CONT
         FAN1_ON:
             MOV AL, 0C7H                ; displays "[ON] "
@@ -336,9 +362,6 @@ START:
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
         CONT_ROOM2:
-            MOV AL, 0D4H                ; displays "Temperature: "
-            LEA SI, TEMP_STR
-            CALL DISPLAY_STR
             JMP CONT
         FAN3_ON:
             MOV AL, 0C7H                ; displays "[ON] "
@@ -381,9 +404,6 @@ START:
             LEA SI, FAN_OFF_STR
             CALL DISPLAY_STR
         CONT_ROOM3:
-            MOV AL, 0D4H                ; displays "Temperature: "
-            LEA SI, TEMP_STR
-            CALL DISPLAY_STR
             JMP CONT
         FAN5_ON:
             MOV AL, 0C7H                ; displays "[ON] "
@@ -708,14 +728,10 @@ START:
             CONT_AT_ROOM3_2:
             JMP CONT
     ROOM1_WARNING:
-        ; CALL INIT_LCD
         MOV AL, 01H
         OUT PORTF, AL
         MOV AL, 00H
         OUT PORTF, AL
-        ; MOV AL, 0D4H
-        ; LEA SI, WARNING_STR
-        ; CALL DISPLAY_STR
         JMP CONT
     ROOM2_WARNING:
         MOV AL, 02H
@@ -816,6 +832,13 @@ START:
         MOV AL, 00H
         OUT PORTG, AL
 
+        MOV AL, 0D4H                ; displays "Temperature: "
+        LEA SI, TEMP_STR
+        CALL DISPLAY_STR
+        MOV AL, 0E3H
+        LEA SI, CLEAR_BOTTOM
+        CALL DISPLAY_STR
+
         MOV AL, ADC_CURR
         CMP AL, 01BH
         JE TEMP_16
@@ -850,23 +873,65 @@ START:
     RET
         BUZZER:
             CMP FAN1_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON1
             CMP FAN2_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON1
             CMP FAN3_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON2
             CMP FAN4_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON2
             CMP FAN5_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON3
             CMP FAN6_FLAG, 1
-            JE BUZZER_ON
+            JE BUZZER_ON3
         RET
-        BUZZER_ON:
+        BUZZER_ON1:
+            MOV AL, 0D4H
+            LEA SI, WARNING_STR
+            CALL DISPLAY_STR
+            MOV CX, 03H
+            CALL TIMER_CTRL
             MOV ROOM1_WARNING_FLAG, 1
-            MOV DX, PORTG
             MOV AL, 02H
-            OUT DX, AL
+            OUT PORTG, AL
+            MOV AL, 0C7H                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+        RET
+        BUZZER_ON2:
+            MOV AL, 0D4H
+            LEA SI, WARNING_STR
+            CALL DISPLAY_STR
+            MOV CX, 03H
+            CALL TIMER_CTRL
+            MOV ROOM2_WARNING_FLAG, 1
+            MOV AL, 02H
+            OUT PORTG, AL
+            MOV AL, 0C7H                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+        RET
+        BUZZER_ON3:
+            MOV AL, 0D4H
+            LEA SI, WARNING_STR
+            CALL DISPLAY_STR
+            MOV CX, 03H
+            CALL TIMER_CTRL
+            MOV ROOM3_WARNING_FLAG, 1
+            MOV AL, 02H
+            OUT PORTG, AL
+            MOV AL, 0C7H                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
+            MOV AL, 09BH                ; displays "[OFF]"
+            LEA SI, FAN_OFF_STR
+            CALL DISPLAY_STR
         RET
 
         HANDLE_ROOM:
@@ -986,39 +1051,11 @@ START:
 
     ; MODULE: Timer Control
     TIMER_CTRL:
-    CMP CX, 03H
-    JE D3
-    CMP CX, 02H
-    JE D2
-    CMP CX, 01H
-    JE D1
-    RESUME:
         CALL DELAY_1S
         DEC CX
         CMP CX, 00H
         JNZ TIMER_CTRL
     RET
-
-    ; MODULES: Display the number of seconds
-    D1:
-        MOV AL, 09EH 	; set cursor location
-        CALL INST_CTRL	; send instruction to LCD
-        MOV AL, '1' ; display ‘1‘
-        JMP CONT
-    D2:
-        MOV AL, 09EH 	; set cursor location
-        CALL INST_CTRL	; send instruction to LCD
-        MOV AL, '2' ; display ‘2‘
-        JMP CONT
-    D3:
-        MOV AL, 09EH 	; set cursor location
-        CALL INST_CTRL	; send instruction to LCD
-        MOV AL, '3' ; display ‘3‘
-        JMP CONT
-    CONT2:
-      CALL DISPLAY_STR
-      CALL DELAY_1MS
-      JMP RESUME
 
 
     ; MODULE: Timer

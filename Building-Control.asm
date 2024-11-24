@@ -125,6 +125,10 @@ ORG 03000H
     CLEAR_BOTTOM DB "      ", "$"
 
     ; Data Variables
+    HR_ONES_DIGIT DB 33H
+    HR_TENS_DIGIT DB 32H
+    MIN_ONES_DIGIT DB 30H
+    MIN_TENS_DIGIT DB 35H
     AT_ROOM_FLAG DB 0
     AT_ROOM1_FLAG DB 0
     AT_ROOM2_FLAG DB 0
@@ -158,6 +162,7 @@ ORG 03000H
     T28 DB "28", "$"
     T29 DB "29", "$"
     T30 DB "30", "$"
+
 DATA ENDS
 
 
@@ -225,25 +230,135 @@ START:
 
     HERE:
         CALL INIT_LCD
+        CALL CLOCK_TIME
         CALL SHOW_MENU
         CALL MENU_CHECK_DAVBL
     JMP HERE
 
+    ; MODULE: Displays a 24-hour clock
+    CLOCK_TIME:
+        CALL HR_TENS_MOVE_CURSOR
+        MOV AL, HR_TENS_DIGIT
+        CALL DATA_CTRL
+        CALL HR_ONES_MOVE_CURSOR
+        MOV AL, HR_ONES_DIGIT
+        CALL DATA_CTRL
+        CALL PRINT_COLON
+        CALL MIN_TENS_MOVE_CURSOR
+        MOV AL, MIN_TENS_DIGIT
+        CALL DATA_CTRL
+        MOV AL, MIN_ONES_DIGIT
+
+        CLOCK_HERE:
+            CALL UPDATE_TIME
+            INC AL
+            MOV MIN_ONES_DIGIT, AL
+            CALL MIN_ONES_MOVE_CURSOR
+            CMP AL, 3AH
+            JNE HERE
+            MOV AL, MIN_TENS_DIGIT
+            INC AL
+            MOV MIN_TENS_DIGIT, AL
+            CMP AL, 36H
+            JE MIN_TENS_CTRL
+            CALL MIN_TENS_MOVE_CURSOR
+            CALL DATA_CTRL
+            CALL MIN_ONES_MOVE_CURSOR
+            MOV AL, 30H
+            MOV MIN_ONES_DIGIT, AL
+        JMP CLOCK_HERE
+
+        MIN_TENS_CTRL:
+            MOV AL, 30H
+            MOV MIN_TENS_DIGIT, AL
+            CALL MIN_TENS_MOVE_CURSOR
+            CALL DATA_CTRL
+            CALL MIN_ONES_MOVE_CURSOR
+            MOV AL, 30H
+            MOV MIN_ONES_DIGIT, AL
+
+            MOV AL, HR_ONES_DIGIT
+            INC AL
+            MOV HR_ONES_DIGIT, AL
+            CMP AL, 34H
+            JE CHECK_IF_2
+
+            CONT_MIN_TENS_CTRL:
+                MOV AL, HR_ONES_DIGIT
+                CMP AL, 3AH
+                JE HR_TENS_CTRL
+                CALL HR_ONES_MOVE_CURSOR
+                MOV AL, HR_ONES_DIGIT
+                CALL DATA_CTRL
+                CALL PRINT_COLON
+                CALL MIN_TENS_MOVE_CURSOR
+                MOV AL, MIN_TENS_DIGIT
+                CALL DATA_CTRL
+                MOV AL, MIN_ONES_DIGIT
+                JMP CLOCK_HERE
+
+        HR_TENS_CTRL:
+            MOV HR_ONES_DIGIT, 30H
+
+            MOV AL, HR_TENS_DIGIT
+            INC AL
+            MOV HR_TENS_DIGIT, AL
+
+            CALL HR_TENS_MOVE_CURSOR
+            MOV AL, HR_TENS_DIGIT
+            CALL DATA_CTRL
+
+            CALL HR_ONES_MOVE_CURSOR
+            MOV AL, HR_ONES_DIGIT
+            CALL DATA_CTRL
+
+            CALL PRINT_COLON
+
+            CALL MIN_TENS_MOVE_CURSOR
+            MOV AL, MIN_TENS_DIGIT
+            CALL DATA_CTRL
+
+            MOV AL, MIN_ONES_DIGIT
+            JMP CLOCK_HERE
+
+        CHECK_IF_2:
+            MOV AL, HR_TENS_DIGIT
+            CMP AL, 32H
+            JNE CONT_MIN_TENS_CTRL
+
+            MOV HR_TENS_DIGIT, 30H
+            MOV HR_ONES_DIGIT, 30H
+            MOV MIN_TENS_DIGIT, 30H
+            MOV MIN_ONES_DIGIT, 30H
+            CALL HR_TENS_MOVE_CURSOR
+            MOV AL, HR_TENS_DIGIT
+            CALL DATA_CTRL
+            CALL HR_ONES_MOVE_CURSOR
+            MOV AL, HR_ONES_DIGIT
+            CALL DATA_CTRL
+            CALL PRINT_COLON
+            CALL MIN_TENS_MOVE_CURSOR
+            MOV AL, MIN_TENS_DIGIT
+            CALL DATA_CTRL
+            MOV AL, MIN_ONES_DIGIT
+            JMP CLOCK_HERE
+    RET
+
     ; MODULE: display menu
     SHOW_MENU:
-        MOV AL, 085H        ; set cursor position
+        MOV AL, 080H        ; set cursor position
         LEA SI, MENU1_STR   ; move strng to display
         CALL DISPLAY_STR    ; instruct LCD and display string from SI
 
-        MOV AL, 0C5H
+        MOV AL, 0C0H
         LEA SI, MENU2_STR
         CALL DISPLAY_STR
 
-        MOV AL, 099H
+        MOV AL, 094H
         LEA SI, MENU3_STR
         CALL DISPLAY_STR
 
-        MOV AL, 0D8H
+        MOV AL, 0D4H
         LEA SI, MENU4_STR
         CALL DISPLAY_STR
     RET
@@ -1059,6 +1174,49 @@ START:
             OUT DX, AL
             LEA SI, T30
         RET
+
+    ; MODULE: display tme
+    UPDATE_TIME:
+        CALL DATA_CTRL
+        PUSH AX
+        CALL DELAY_1S
+        POP AX
+    RET
+
+    HR_TENS_MOVE_CURSOR:
+        PUSH AX
+        MOV AL, 080H
+        CALL INST_CTRL
+        POP AX
+    RET
+
+    PRINT_COLON:
+        MOV AL, 082H
+        CALL INST_CTRL
+        MOV AL, 3AH
+        CALL DATA_CTRL
+    RET
+
+    HR_ONES_MOVE_CURSOR:
+        PUSH AX
+        MOV AL, 081H
+        CALL INST_CTRL
+        POP AX
+    RET
+
+    MIN_TENS_MOVE_CURSOR:
+        PUSH AX
+        MOV AL, 083H
+        CALL INST_CTRL
+        POP AX
+    RET
+
+    MIN_ONES_MOVE_CURSOR:
+        PUSH AX
+        MOV AL, 084H
+        CALL INST_CTRL
+        POP AX
+    RET
 
     ; MODULE: Timer Control
     TIMER_CTRL:

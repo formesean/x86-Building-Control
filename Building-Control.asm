@@ -185,164 +185,55 @@ START:
     CLI
 
     ; configure 8255 PPIs
-    MOV DX, COM_REG1
-    MOV AL, 10001001B
-    OUT DX, AL
-    MOV DX, COM_REG3
-    MOV AL, 10000010B
-    OUT DX, AL
-    MOV AL, 10000000B
-    MOV DX, COM_REG2
-    OUT DX, AL
-    MOV DX, COM_REG4
-    OUT DX, AL
-    MOV DX, COM_REG5
-    OUT DX, AL
+        MOV DX, COM_REG1
+        MOV AL, 10001001B
+        OUT DX, AL
+        MOV DX, COM_REG3
+        MOV AL, 10000010B
+        OUT DX, AL
+        MOV AL, 10000000B
+        MOV DX, COM_REG2
+        OUT DX, AL
+        MOV DX, COM_REG4
+        OUT DX, AL
+        MOV DX, COM_REG5
+        OUT DX, AL
 
     ; configure 8283 Timer
-    MOV AL, 00111000B
-    OUT COM_REGT, AL
+        MOV AL, 00111000B
+        OUT COM_REGT, AL
 
     ; configure 8259 PIC
-    MOV AL, ICW1
-    OUT PIC1, AL
-    MOV AL, ICW2
-    OUT PIC2, AL
-    MOV AL, ICW4
-    OUT PIC2, AL
-    MOV AL, OCW1
-    OUT PIC2, AL
-    STI
+        MOV AL, ICW1
+        OUT PIC1, AL
+        MOV AL, ICW2
+        OUT PIC2, AL
+        MOV AL, ICW4
+        OUT PIC2, AL
+        MOV AL, OCW1
+        OUT PIC2, AL
+        STI
 
     ; Storing interrupt vector to interrupt vector table in memory
-    MOV AX, OFFSET ISR1
-    MOV [ES:200H], AX
-    MOV AX, SEG ISR1
-    MOV [ES:202H], AX
-    MOV AX, OFFSET ISR2
-    MOV [ES:204H], AX
-    MOV AX, SEG ISR2
-    MOV [ES:206H], AX
-    MOV AX, OFFSET ISR3
-    MOV [ES:208H], AX
-    MOV AX, SEG ISR3
-    MOV [ES:20AH], AX
+        MOV AX, OFFSET ISR1
+        MOV [ES:200H], AX
+        MOV AX, SEG ISR1
+        MOV [ES:202H], AX
+        MOV AX, OFFSET ISR2
+        MOV [ES:204H], AX
+        MOV AX, SEG ISR2
+        MOV [ES:206H], AX
+        MOV AX, OFFSET ISR3
+        MOV [ES:208H], AX
+        MOV AX, SEG ISR3
+        MOV [ES:20AH], AX
 
     HERE:
         CALL INIT_LCD
-        CALL CLOCK_TIME
         CALL SHOW_MENU
         CALL MENU_CHECK_DAVBL
     JMP HERE
 
-    ; MODULE: Displays a 24-hour clock
-    CLOCK_TIME:
-        CALL HR_TENS_MOVE_CURSOR
-        MOV AL, HR_TENS_DIGIT
-        CALL DATA_CTRL
-        CALL HR_ONES_MOVE_CURSOR
-        MOV AL, HR_ONES_DIGIT
-        CALL DATA_CTRL
-        CALL PRINT_COLON
-        CALL MIN_TENS_MOVE_CURSOR
-        MOV AL, MIN_TENS_DIGIT
-        CALL DATA_CTRL
-        MOV AL, MIN_ONES_DIGIT
-
-        CLOCK_HERE:
-            CALL UPDATE_TIME
-            INC AL
-            MOV MIN_ONES_DIGIT, AL
-            CALL MIN_ONES_MOVE_CURSOR
-            CMP AL, 3AH
-            JNE HERE
-            MOV AL, MIN_TENS_DIGIT
-            INC AL
-            MOV MIN_TENS_DIGIT, AL
-            CMP AL, 36H
-            JE MIN_TENS_CTRL
-            CALL MIN_TENS_MOVE_CURSOR
-            CALL DATA_CTRL
-            CALL MIN_ONES_MOVE_CURSOR
-            MOV AL, 30H
-            MOV MIN_ONES_DIGIT, AL
-        JMP CLOCK_HERE
-
-        MIN_TENS_CTRL:
-            MOV AL, 30H
-            MOV MIN_TENS_DIGIT, AL
-            CALL MIN_TENS_MOVE_CURSOR
-            CALL DATA_CTRL
-            CALL MIN_ONES_MOVE_CURSOR
-            MOV AL, 30H
-            MOV MIN_ONES_DIGIT, AL
-
-            MOV AL, HR_ONES_DIGIT
-            INC AL
-            MOV HR_ONES_DIGIT, AL
-            CMP AL, 34H
-            JE CHECK_IF_2
-
-            CONT_MIN_TENS_CTRL:
-                MOV AL, HR_ONES_DIGIT
-                CMP AL, 3AH
-                JE HR_TENS_CTRL
-                CALL HR_ONES_MOVE_CURSOR
-                MOV AL, HR_ONES_DIGIT
-                CALL DATA_CTRL
-                CALL PRINT_COLON
-                CALL MIN_TENS_MOVE_CURSOR
-                MOV AL, MIN_TENS_DIGIT
-                CALL DATA_CTRL
-                MOV AL, MIN_ONES_DIGIT
-                JMP CLOCK_HERE
-
-        HR_TENS_CTRL:
-            MOV HR_ONES_DIGIT, 30H
-
-            MOV AL, HR_TENS_DIGIT
-            INC AL
-            MOV HR_TENS_DIGIT, AL
-
-            CALL HR_TENS_MOVE_CURSOR
-            MOV AL, HR_TENS_DIGIT
-            CALL DATA_CTRL
-
-            CALL HR_ONES_MOVE_CURSOR
-            MOV AL, HR_ONES_DIGIT
-            CALL DATA_CTRL
-
-            CALL PRINT_COLON
-
-            CALL MIN_TENS_MOVE_CURSOR
-            MOV AL, MIN_TENS_DIGIT
-            CALL DATA_CTRL
-
-            MOV AL, MIN_ONES_DIGIT
-            JMP CLOCK_HERE
-
-        CHECK_IF_2:
-            MOV AL, HR_TENS_DIGIT
-            CMP AL, 32H
-            JNE CONT_MIN_TENS_CTRL
-
-            MOV HR_TENS_DIGIT, 30H
-            MOV HR_ONES_DIGIT, 30H
-            MOV MIN_TENS_DIGIT, 30H
-            MOV MIN_ONES_DIGIT, 30H
-            CALL HR_TENS_MOVE_CURSOR
-            MOV AL, HR_TENS_DIGIT
-            CALL DATA_CTRL
-            CALL HR_ONES_MOVE_CURSOR
-            MOV AL, HR_ONES_DIGIT
-            CALL DATA_CTRL
-            CALL PRINT_COLON
-            CALL MIN_TENS_MOVE_CURSOR
-            MOV AL, MIN_TENS_DIGIT
-            CALL DATA_CTRL
-            MOV AL, MIN_ONES_DIGIT
-            JMP CLOCK_HERE
-    RET
 
     ; MODULE: display menu
     SHOW_MENU:
@@ -365,6 +256,7 @@ START:
 
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
+        CALL CLOCK_TIME
         MOV DX, PORTC
         IN AL, DX; read PORTC
         TEST AL, 10H ; check if DAVBL is high
@@ -384,6 +276,7 @@ START:
 
     ; MODULE: Checkk DAVBL for rooms
     ROOM_CHECK_DAVBL:
+        CALL CLOCK_TIME
         CMP ROOM1_WARNING_FLAG, 1
         JE ROOM1_WARNING
         CMP ROOM2_WARNING_FLAG, 1
@@ -413,6 +306,69 @@ START:
 
         CALL DELAY_1MS
         JMP ROOM_CHECK_DAVBL
+
+    ; MODULE: Displays a 24-hour clock
+    CLOCK_TIME:
+        CALL DISPLAY_HOUR_TENS
+        CALL DISPLAY_HOUR_ONES
+        CALL DISPLAY_COLON
+        CALL DISPLAY_MIN_TENS
+        CALL DISPLAY_MIN_ONES
+        CALL UPDATE_TIME
+    RET
+
+    ; MODULE: Update the time
+    UPDATE_TIME:
+        CMP MIN_ONES_DIGIT, 3AH
+        JE RESET_MIN_ONES
+        CMP MIN_TENS_DIGIT, 36H
+        JE RESET_MIN_TENS
+        CMP HR_ONES_DIGIT, 3AH
+        JE RESET_HR_ONES
+        CMP HR_ONES_DIGIT, 34H
+        JE CHECK_IF_PM
+        CMP HR_TENS_DIGIT, 33H
+        JE RESET_HR_TENS
+
+        INC MIN_ONES_DIGIT
+        CALL DELAY_1S
+        RET
+
+        RESET_MIN_ONES:
+            MOV MIN_ONES_DIGIT, 30H
+            CALL DISPLAY_MIN_ONES
+            INC MIN_TENS_DIGIT
+        RET
+
+        RESET_MIN_TENS:
+            MOV MIN_TENS_DIGIT, 30H
+            CALL DISPLAY_MIN_TENS
+            INC HR_ONES_DIGIT
+        RET
+
+        RESET_HR_ONES:
+            MOV HR_ONES_DIGIT, 30H
+            CALL DISPLAY_HOUR_ONES
+            INC HR_TENS_DIGIT
+        RET
+
+        RESET_HR_TENS:
+            MOV HR_TENS_DIGIT, 30H
+            CALL DISPLAY_HOUR_TENS
+        RET
+
+        CHECK_IF_PM:
+            CMP HR_TENS_DIGIT, 32H
+            JE RESET_TO_AM
+        RET
+
+        RESET_TO_AM:
+            MOV HR_ONES_DIGIT, 30H
+            CALL DISPLAY_HOUR_ONES
+            MOV HR_TENS_DIGIT, 30H
+            CALL DISPLAY_HOUR_TENS
+        RET
+    JMP UPDATE_TIME
 
     ; MODULE: Rooms menu
     ROOM1:
@@ -932,17 +888,6 @@ START:
         CALL INST_CTRL ; write instruction to LCD
     RET
 
-    ; MODULE: Displays a string from SI
-    DISPLAY_STR: CALL INST_CTRL
-    DISP:
-        MOV AL, [SI]
-        CMP AL, '$'
-        JE EXIT
-        CALL DATA_CTRL
-        INC SI
-        JMP DISP
-    RET
-
     ; MODULE: Convert the digital data from ADC to a string format and convert to a certain speed
     ; 16			    21			    26
     ; 17			    22			    27
@@ -1084,6 +1029,8 @@ START:
 
         CONT1:
         RET
+
+    ; Gettng Temperature sensor value ready to display
         TEMP_16:
             CALL HANDLE_ROOM
             MOV AL, 03H
@@ -1175,47 +1122,50 @@ START:
             LEA SI, T30
         RET
 
-    ; MODULE: display tme
-    UPDATE_TIME:
+    ; MODULE: Displays a string from SI
+    DISPLAY_STR: CALL INST_CTRL
+    DISP:
+        MOV AL, [SI]
+        CMP AL, '$'
+        JE EXIT
         CALL DATA_CTRL
-        PUSH AX
-        CALL DELAY_1S
-        POP AX
+        INC SI
+        JMP DISP
     RET
 
-    HR_TENS_MOVE_CURSOR:
-        PUSH AX
-        MOV AL, 080H
+    DISPLAY_HOUR_TENS:
+        MOV AL, 08FH
         CALL INST_CTRL
-        POP AX
+        MOV AL, HR_TENS_DIGIT
+        CALL DATA_CTRL
     RET
 
-    PRINT_COLON:
-        MOV AL, 082H
+    DISPLAY_HOUR_ONES:
+        MOV AL, 090H
+        CALL INST_CTRL
+        MOV AL, HR_ONES_DIGIT
+        CALL DATA_CTRL
+    RET
+
+    DISPLAY_COLON:
+        MOV AL, 091H
         CALL INST_CTRL
         MOV AL, 3AH
         CALL DATA_CTRL
     RET
 
-    HR_ONES_MOVE_CURSOR:
-        PUSH AX
-        MOV AL, 081H
+    DISPLAY_MIN_TENS:
+        MOV AL, 092H
         CALL INST_CTRL
-        POP AX
+        MOV AL, MIN_TENS_DIGIT
+        CALL DATA_CTRL
     RET
 
-    MIN_TENS_MOVE_CURSOR:
-        PUSH AX
-        MOV AL, 083H
+    DISPLAY_MIN_ONES:
+        MOV AL, 093H
         CALL INST_CTRL
-        POP AX
-    RET
-
-    MIN_ONES_MOVE_CURSOR:
-        PUSH AX
-        MOV AL, 084H
-        CALL INST_CTRL
-        POP AX
+        MOV AL, MIN_ONES_DIGIT
+        CALL DATA_CTRL
     RET
 
     ; MODULE: Timer Control

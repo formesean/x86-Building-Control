@@ -5,7 +5,7 @@ ORG 00000H
     PUSHF
     PUSH AX
     PUSH DX
-    MOV AL , 00H
+    MOV AL, 00H
     OUT PORTJ, AL
     MOV FAN1_FLAG, 0
     MOV FAN2_FLAG, 0
@@ -25,7 +25,7 @@ ORG 00100H
     PUSHF
     PUSH AX
     PUSH DX
-    MOV AL , 00H
+    MOV AL, 00H
     OUT PORTL, AL
     MOV FAN3_FLAG, 0
     MOV FAN4_FLAG, 0
@@ -45,7 +45,7 @@ ORG 00200H
     PUSHF
     PUSH AX
     PUSH DX
-    MOV AL , 00Hs
+    MOV AL, 00H
     OUT PORTN, AL
     MOV FAN5_FLAG, 0
     MOV FAN6_FLAG, 0
@@ -250,20 +250,6 @@ START:
 
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
-        CMP ROOM1_WARNING_FLAG, 1
-        JE ROOM1_WARNING
-        CMP ROOM2_WARNING_FLAG, 1
-        JE ROOM2_WARNING
-        CMP ROOM3_WARNING_FLAG, 1
-        JE ROOM3_WARNING
-        CMP AT_ROOM_FLAG, 1
-        JNE CONT_MENU
-        CALL READ_ADC
-        CALL ADC_DATA_CONVERTER
-        MOV AL, 0E1H
-        CALL DISPLAY_STR
-
-        CONT_MENU:
         MOV DX, PORTC
         IN AL, DX; read PORTC
         TEST AL, 10H ; check if DAVBL is high
@@ -278,15 +264,40 @@ START:
         JE ROOM3 ; go to room 3 menu
         CMP AL, 04H ; check if key pressed is 3 (02H)
         JE ROOMALL ; go to room all menu
-        CMP AL, 08H ; check if key pressed is 7 (08H)
-        JE FIRST_FAN ; go to FIRST_FAN module
-        CMP AL, 0AH ; check if key pressed is 9 (0AH)
-        JE SECOND_FAN ; go to SECOND_FAN module
-        CMP AL, 0EH ; check if key pressed is # (0EH)
-        JE BACK ; go back to menu
         CALL DELAY_1MS
         JMP MENU_CHECK_DAVBL
 
+    ; MODULE: Checkk DAVBL for rooms
+    ROOM_CHECK_DAVBL:
+        CMP ROOM1_WARNING_FLAG, 1
+        JE ROOM1_WARNING
+        CMP ROOM2_WARNING_FLAG, 1
+        JE ROOM2_WARNING
+        CMP ROOM3_WARNING_FLAG, 1
+        JE ROOM3_WARNING
+        CMP AT_ROOM_FLAG, 1
+        JNE CONT_ROOM_CHECK_DAVBL
+        CALL READ_ADC
+        CALL ADC_DATA_CONVERTER
+        MOV AL, 0E1H
+        CALL DISPLAY_STR
+
+        CONT_ROOM_CHECK_DAVBL:
+            MOV DX, PORTC
+            IN AL, DX; read PORTC
+            TEST AL, 10H ; check if DAVBL is high
+            JZ ROOM_CHECK_DAVBL ; if low then check again
+            IN AL, DX ; read 4-bit keypad data
+            AND AL, 0FH ; mask upper nibble
+            CMP AL, 08H ; check if key pressed is 7 (08H)
+            JE FIRST_FAN ; go to FIRST_FAN module
+            CMP AL, 0AH ; check if key pressed is 9 (0AH)
+            JE SECOND_FAN ; go to SECOND_FAN module
+            CMP AL, 0EH ; check if key pressed is # (0EH)
+            JE BACK ; go back to menu
+
+        CALL DELAY_1MS
+        JMP ROOM_CHECK_DAVBL
 
     ; MODULE: Rooms menu
     ROOM1:
@@ -746,9 +757,9 @@ START:
         OUT PORTF, AL
         JMP CONT
 
-        CONT:
-            CALL DELAY_1MS
-            JMP MENU_CHECK_DAVBL
+    CONT:
+        CALL DELAY_1MS
+        JMP ROOM_CHECK_DAVBL
 
     ; MODULE: fetch data from temperature sensor using ADC
     ; ADDC ADDB ADDA

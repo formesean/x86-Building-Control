@@ -231,10 +231,10 @@ ORG 03000H
         CLEAR_TOP DB "            ", "$"
 
     ; Data Variables
-        HR_ONES_DIGIT DB 33H
-        HR_TENS_DIGIT DB 32H
+        HR_ONES_DIGIT DB 30H
+        HR_TENS_DIGIT DB 31H
         MIN_ONES_DIGIT DB 30H
-        MIN_TENS_DIGIT DB 35H
+        MIN_TENS_DIGIT DB 30H
         AT_ROOM_FLAG DB 0
         AT_ROOM1_FLAG DB 0
         AT_ROOM2_FLAG DB 0
@@ -409,7 +409,7 @@ START:
         JE ROOM2 ; go to room 2 menu
         CMP AL, 02H ; check if key pressed is 3 (02H)
         JE ROOM3 ; go to room 3 menu
-        CMP AL, 04H ; check if key pressed is 3 (02H)
+        CMP AL, 04H ; check if key pressed is 4 (02H)
         JE SCHEDULE ; go to room all menu
         CALL DELAY_1MS
         JMP MENU_CHECK_DAVBL
@@ -417,6 +417,7 @@ START:
     ; MODULE: Check DAVBL for rooms
     ROOM_CHECK_DAVBL:
         CALL CLOCK_TIME
+        CALL CHECK_SCHEDULE
         CMP ROOM1_WARNING_FLAG, 1
         JE ROOM1_WARNING
         CMP ROOM2_WARNING_FLAG, 1
@@ -675,17 +676,19 @@ START:
     RET
     ; MODULE: Update the time
     UPDATE_TIME:
+    ; 32 33 35 39
         CMP MIN_ONES_DIGIT, 3AH
         JE RESET_MIN_ONES
         CMP MIN_TENS_DIGIT, 36H
         JE RESET_MIN_TENS
         CMP HR_ONES_DIGIT, 3AH
         JE RESET_HR_ONES
-        CMP HR_ONES_DIGIT, 34H
-        JE CHECK_IF_PM
         CMP HR_TENS_DIGIT, 33H
         JE RESET_HR_TENS
+        CMP HR_ONES_DIGIT, 34H
+        JE CHECK_IF_PM
 
+        CONT_UPDATE_TIME:
         INC MIN_ONES_DIGIT
         CALL DELAY_500MS
         RET
@@ -716,6 +719,7 @@ START:
         CHECK_IF_PM:
             CMP HR_TENS_DIGIT, 32H
             JE RESET_TO_AM
+            JNE CONT_UPDATE_TIME
         RET
 
         RESET_TO_AM:

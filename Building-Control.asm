@@ -17,7 +17,6 @@ ORG 00000H
 ISR1 ENDP
 PROCED1 ENDS
 
-
 PROCED2 SEGMENT 'CODE'
 ISR2 PROC FAR
 ASSUME CS:PROCED2, DS:DATA
@@ -36,7 +35,6 @@ ORG 00100H
     IRET
 ISR2 ENDP
 PROCED2 ENDS
-
 
 PROCED3 SEGMENT 'CODE'
 ISR3 PROC FAR
@@ -57,112 +55,241 @@ ORG 00200H
 ISR3 ENDP
 PROCED3 ENDS
 
+PROCED4 SEGMENT 'CODE'
+ISR4 PROC FAR
+ASSUME CS:PROCED4, DS:DATA
+ORG 00300H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    CMP ROOM1_SCHED_ON_FLAG, 1
+    JE ROOM1_ON_FANS
+    CMP ROOM1_SCHED_OFF_FLAG, 1
+    JE ROOM1_OFF_FANS
+    JMP EXIT_ISR4
+    ROOM1_ON_FANS:
+    MOV AL, 03H
+    OUT PORTJ, AL
+    MOV AL, 01H
+    OUT PORTK, AL
+    MOV FAN1_FLAG, 1
+    MOV FAN2_FLAG, 1
+    JMP EXIT_ISR4
+    ROOM1_OFF_FANS:
+    MOV AL, 00H
+    OUT PORTJ, AL
+    MOV AL, 00H
+    OUT PORTK, AL
+    MOV FAN1_FLAG, 0
+    MOV FAN2_FLAG, 0
+    JMP EXIT_ISR4
+    EXIT_ISR4:
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR4 ENDP
+PROCED4 ENDS
+
+PROCED5 SEGMENT 'CODE'
+ISR5 PROC FAR
+ASSUME CS:PROCED5, DS:DATA
+ORG 00400H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    CMP ROOM2_SCHED_ON_FLAG, 1
+    JE ROOM2_ON_FANS
+    CMP ROOM2_SCHED_OFF_FLAG, 1
+    JE ROOM2_OFF_FANS
+    JMP EXIT_ISR5
+    ROOM2_ON_FANS:
+    MOV AL, 03H
+    OUT PORTL, AL
+    MOV AL, 01H
+    OUT PORTM, AL
+    MOV FAN3_FLAG, 1
+    MOV FAN4_FLAG, 1
+    JMP EXIT_ISR5
+    ROOM2_OFF_FANS:
+    MOV AL, 00H
+    OUT PORTL, AL
+    MOV AL, 00H
+    OUT PORTM, AL
+    MOV FAN3_FLAG, 0
+    MOV FAN4_FLAG, 0
+    JMP EXIT_ISR5
+    EXIT_ISR5:
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR5 ENDP
+PROCED5 ENDS
+
+PROCED6 SEGMENT 'CODE'
+ISR6 PROC FAR
+ASSUME CS:PROCED6, DS:DATA
+ORG 00500H
+    PUSHF
+    PUSH AX
+    PUSH DX
+    CMP ROOM3_SCHED_ON_FLAG, 1
+    JE ROOM3_ON_FANS
+    CMP ROOM3_SCHED_OFF_FLAG, 1
+    JE ROOM3_OFF_FANS
+    JMP EXIT_ISR6
+    ROOM3_ON_FANS:
+    MOV AL, 03H
+    OUT PORTN, AL
+    MOV AL, 01H
+    OUT PORTO, AL
+    MOV FAN5_FLAG, 1
+    MOV FAN6_FLAG, 1
+    JMP EXIT_ISR6
+    ROOM3_OFF_FANS:
+    MOV AL, 00H
+    OUT PORTN, AL
+    MOV AL, 00H
+    OUT PORTO, AL
+    MOV FAN5_FLAG, 0
+    MOV FAN6_FLAG, 0
+    JMP EXIT_ISR6
+    EXIT_ISR6:
+    POP DX
+    POP AX
+    POPF
+    IRET
+ISR6 ENDP
+PROCED6 ENDS
 
 DATA SEGMENT
 ORG 03000H
     ; LCD & Keypad PPI
-    PORTA EQU 0D0H
-    PORTB EQU 0D2H
-    PORTC EQU 0D4H
-    COM_REG1 EQU 0D6H
+        PORTA EQU 0D0H
+        PORTB EQU 0D2H
+        PORTC EQU 0D4H
+        COM_REG1 EQU 0D6H
 
     ; ADC & Interrupt PPI
-    PORTD EQU 0D8H
-    PORTE EQU 0DAH
-    PORTF EQU 0DCH
-    COM_REG2 EQU 0DEH
+        PORTD EQU 0D8H
+        PORTE EQU 0DAH
+        PORTF EQU 0DCH
+        COM_REG2 EQU 0DEH
 
     ; Timer & Buzzer PPI
-    PORTG EQU 0E0H
-    PORTH EQU 0E2H
-    PORTI EQU 0E4H
-    COM_REG3 EQU 0E6H
+        PORTG EQU 0E0H
+        PORTH EQU 0E2H
+        PORTI EQU 0E4H
+        COM_REG3 EQU 0E6H
 
     ; Fans PPI
-    PORTJ EQU 0F0H
-    PORTK EQU 0F2H
-    PORTL EQU 0F4H
-    COM_REG4 EQU 0F6H
-    PORTM EQU 0F8H
-    PORTN EQU 0FAH
-    PORTO EQU 0FCH
-    COM_REG5 EQU 0FEH
+        PORTJ EQU 0F0H
+        PORTK EQU 0F2H
+        PORTL EQU 0F4H
+        COM_REG4 EQU 0F6H
+        PORTM EQU 0F8H
+        PORTN EQU 0FAH
+        PORTO EQU 0FCH
+        COM_REG5 EQU 0FEH
 
     ; 8259 PIC
-    PIC1 EQU 0C8H
-    PIC2 EQU 0CAH
-    ICW1 EQU 013H
-    ICW2 EQU 080H
-    ICW4 EQU 003H
-    OCW1 EQU 0F8H	;1111 1000 = F8
+        PIC1 EQU 0C8H
+        PIC2 EQU 0CAH
+        ICW1 EQU 013H
+        ICW2 EQU 080H
+        ICW4 EQU 003H
+        OCW1 EQU 0C0H	;1100 0000 = C0
 
     ; 8253 Timer
-    PORT_T EQU 0C0H
-    COM_REGT EQU 0C6H
+        PORT_T EQU 0C0H
+        COM_REGT EQU 0C6H
 
     ; Strings to be displayed on LCD
-    MENU1_STR DB "Room 1 [1]", "$"
-    MENU2_STR DB "Room 2 [2]", "$"
-    MENU3_STR DB "Room 3 [3]", "$"
-    MENU4_STR DB "All Rooms [4]", "$"
-    ROOM1_STR DB "Room 1 ", "$"
-    ROOM2_STR DB "Room 2 ", "$"
-    ROOM3_STR DB "Room 3 ", "$"
-    ROOM1_FAN1_STR DB "Fan 1: ", "$"
-    ROOM1_FAN2_STR DB "Fan 2: ", "$"
-    ROOM2_FAN1_STR DB "Fan 1: ", "$"
-    ROOM2_FAN2_STR DB "Fan 2: ", "$"
-    ROOM3_FAN1_STR DB "Fan 1: ", "$"
-    ROOM3_FAN2_STR DB "Fan 2: ", "$"
-    ROOM1_FANS_STR DB "Room 1 Fans: ", "$"
-    ROOM2_FANS_STR DB "Room 2 Fans: ", "$"
-    ROOM3_FANS_STR DB "Room 3 Fans: ", "$"
-    ROOMALL_STR DB "All Rooms", "$"
-    FAN_ON_STR DB "[ON] ", "$"
-    FAN_OFF_STR DB "[OFF]", "$"
-    TEMP_STR DB "Temperature: ", "$"
-    WARNING_STR DB "Temperature Warning!", "$"
-    CLEAR_BOTTOM DB "      ", "$"
+        MENU1_STR DB "Room 1   [1]", "$"
+        MENU2_STR DB "Room 2   [2]", "$"
+        MENU3_STR DB "Room 3   [3]", "$"
+        MENU4_STR DB "Schedule [4]", "$"
+        ROOM1_STR DB "Room 1 ", "$"
+        ROOM2_STR DB "Room 2 ", "$"
+        ROOM3_STR DB "Room 3 ", "$"
+        ROOM1_FAN1_STR DB "Fan 1: ", "$"
+        ROOM1_FAN2_STR DB "Fan 2: ", "$"
+        ROOM2_FAN1_STR DB "Fan 1: ", "$"
+        ROOM2_FAN2_STR DB "Fan 2: ", "$"
+        ROOM3_FAN1_STR DB "Fan 1: ", "$"
+        ROOM3_FAN2_STR DB "Fan 2: ", "$"
+        TURN_ON_STR DB "Turn ON:  [1]", "$"
+        TURN_OFF_STR DB "Turn OFF: [2]", "$"
+        SCHED_STR DB "Schedule Room", "$"
+        FAN_ON_STR DB "[ON] ", "$"
+        FAN_OFF_STR DB "[OFF]", "$"
+        TEMP_STR DB "Temperature: ", "$"
+        WARNING_STR DB "Temperature Warning!", "$"
+        SCHED_TIME_STR DB "Time: ", "$"
+        CLEAR_BOTTOM DB "      ", "$"
+        CLEAR_TOP DB "            ", "$"
 
     ; Data Variables
-    HR_ONES_DIGIT DB 33H
-    HR_TENS_DIGIT DB 32H
-    MIN_ONES_DIGIT DB 30H
-    MIN_TENS_DIGIT DB 35H
-    AT_ROOM_FLAG DB 0
-    AT_ROOM1_FLAG DB 0
-    AT_ROOM2_FLAG DB 0
-    AT_ROOM3_FLAG DB 0
-    AT_ROOMS_FLAG DB 0
-    ADC_CURR DB 0
-    FAN1_FLAG DB 0
-    FAN2_FLAG DB 0
-    FAN3_FLAG DB 0
-    FAN4_FLAG DB 0
-    FAN5_FLAG DB 0
-    FAN6_FLAG DB 0
-    ROOM1_FANS_STATE DB 00H
-    ROOM2_FANS_STATE DB 00H
-    ROOM3_FANS_STATE DB 00H
-    ROOM1_WARNING_FLAG DB 0
-    ROOM2_WARNING_FLAG DB 0
-    ROOM3_WARNING_FLAG DB 0
-    T16 DB "16", "$"
-    T17 DB "17", "$"
-    T18 DB "18", "$"
-    T19 DB "19", "$"
-    T20 DB "20", "$"
-    T21 DB "21", "$"
-    T22 DB "22", "$"
-    T23 DB "23", "$"
-    T24 DB "24", "$"
-    T25 DB "25", "$"
-    T26 DB "26", "$"
-    T27 DB "27", "$"
-    T28 DB "28", "$"
-    T29 DB "29", "$"
-    T30 DB "30", "$"
-
+        HR_ONES_DIGIT DB 33H
+        HR_TENS_DIGIT DB 32H
+        MIN_ONES_DIGIT DB 30H
+        MIN_TENS_DIGIT DB 35H
+        AT_ROOM_FLAG DB 0
+        AT_ROOM1_FLAG DB 0
+        AT_ROOM2_FLAG DB 0
+        AT_ROOM3_FLAG DB 0
+        AT_SCHED_FLAG DB 0
+        AT_SCHED_ROOM1_FLAG DB 0
+        AT_SCHED_ROOM2_FLAG DB 0
+        AT_SCHED_ROOM3_FLAG DB 0
+        ADC_CURR DB 0
+        FAN1_FLAG DB 0
+        FAN2_FLAG DB 0
+        FAN3_FLAG DB 0
+        FAN4_FLAG DB 0
+        FAN5_FLAG DB 0
+        FAN6_FLAG DB 0
+        ROOM1_FANS_STATE DB 00H
+        ROOM2_FANS_STATE DB 00H
+        ROOM3_FANS_STATE DB 00H
+        ROOM1_WARNING_FLAG DB 0
+        ROOM2_WARNING_FLAG DB 0
+        ROOM3_WARNING_FLAG DB 0
+        HELPER DB 9AH
+        ROOM1_SCHED_HR_TENS DB ?
+        ROOM1_SCHED_HR_ONES DB ?
+        ROOM1_SCHED_MIN_TENS DB ?
+        ROOM1_SCHED_MIN_ONES DB ?
+        ROOM2_SCHED_HR_TENS DB ?
+        ROOM2_SCHED_HR_ONES DB ?
+        ROOM2_SCHED_MIN_TENS DB ?
+        ROOM2_SCHED_MIN_ONES DB ?
+        ROOM3_SCHED_HR_TENS DB ?
+        ROOM3_SCHED_HR_ONES DB ?
+        ROOM3_SCHED_MIN_TENS DB ?
+        ROOM3_SCHED_MIN_ONES DB ?
+        ROOM1_SCHED_ON_FLAG DB 0
+        ROOM1_SCHED_OFF_FLAG DB 0
+        ROOM2_SCHED_ON_FLAG DB 0
+        ROOM2_SCHED_OFF_FLAG DB 0
+        ROOM3_SCHED_ON_FLAG DB 0
+        ROOM3_SCHED_OFF_FLAG DB 0
+        T16 DB "16", "$"
+        T17 DB "17", "$"
+        T18 DB "18", "$"
+        T19 DB "19", "$"
+        T20 DB "20", "$"
+        T21 DB "21", "$"
+        T22 DB "22", "$"
+        T23 DB "23", "$"
+        T24 DB "24", "$"
+        T25 DB "25", "$"
+        T26 DB "26", "$"
+        T27 DB "27", "$"
+        T28 DB "28", "$"
+        T29 DB "29", "$"
+        T30 DB "30", "$"
 DATA ENDS
 
 
@@ -227,6 +354,18 @@ START:
         MOV [ES:208H], AX
         MOV AX, SEG ISR3
         MOV [ES:20AH], AX
+        MOV AX, OFFSET ISR4
+        MOV [ES:20CH], AX
+        MOV AX, SEG ISR4
+        MOV [ES:20EH], AX
+        MOV AX, OFFSET ISR5
+        MOV [ES:210H], AX
+        MOV AX, SEG ISR5
+        MOV [ES:212H], AX
+        MOV AX, OFFSET ISR6
+        MOV [ES:214H], AX
+        MOV AX, SEG ISR6
+        MOV [ES:216H], AX
 
     HERE:
         CALL INIT_LCD
@@ -257,6 +396,7 @@ START:
     ; MODULE: Check DAVBL for menu
     MENU_CHECK_DAVBL:
         CALL CLOCK_TIME
+        CALL CHECK_SCHEDULE
         MOV DX, PORTC
         IN AL, DX; read PORTC
         TEST AL, 10H ; check if DAVBL is high
@@ -270,11 +410,11 @@ START:
         CMP AL, 02H ; check if key pressed is 3 (02H)
         JE ROOM3 ; go to room 3 menu
         CMP AL, 04H ; check if key pressed is 3 (02H)
-        JE ROOMALL ; go to room all menu
+        JE SCHEDULE ; go to room all menu
         CALL DELAY_1MS
         JMP MENU_CHECK_DAVBL
 
-    ; MODULE: Checkk DAVBL for rooms
+    ; MODULE: Check DAVBL for rooms
     ROOM_CHECK_DAVBL:
         CALL CLOCK_TIME
         CMP ROOM1_WARNING_FLAG, 1
@@ -307,6 +447,223 @@ START:
         CALL DELAY_1MS
         JMP ROOM_CHECK_DAVBL
 
+    ; MODULE: Check davbl for scheduling
+    SCHEDULE_CHECK_DAVBL:
+        CALL CLOCK_TIME
+        MOV DX, PORTC
+        IN AL, DX; read PORTC
+        TEST AL, 10H ; check if DAVBL is high
+        JZ SCHEDULE_CHECK_DAVBL ; if low then check again
+        IN AL, DX ; read 4-bit keypad data
+        AND AL, 0FH ; mask upper nibble
+        CMP AL, 00H ; check if key pressed is 1 (00H)
+        JE SCHED_ROOM1
+        CMP AL, 01H ; check if key pressed is 2 (01H)
+        JE SCHED_ROOM2
+        CMP AL, 02H ; check if key pressed is 3 (02H)
+        JE SCHED_ROOM3
+        CMP AL, 0EH ; check if key pressed is # (0EH)
+        JE BACK ; go back to menu
+        JMP SCHEDULE_CHECK_DAVBL
+
+    CHECK_DAVBL:
+        CMP HELPER, 9CH
+        JE DISP_COLON
+        CMP HELPER, 9FH
+        JE CONIRM_SCHEDULE
+        CALL CLOCK_TIME
+        MOV DX, PORTC
+        IN AL, DX
+        AND AL, 0FH
+        CMP AL, 0CH 		; check if key pressed is *
+        JE KEY_BACKSPACE
+        CMP AL, 0EH 		; check if key pressed is #
+        JE BACK
+        CMP AL, 0DH 		; check if key pressed is 0
+        JE KEY_D0
+        CMP AL, 00H 		; check if key pressed is 1
+        JE KEY_D1
+        CMP AL, 01H 		; check if key pressed is 2
+        JE KEY_D2
+        CMP AL, 02H 		; check if key pressed is 3
+        JE KEY_D3
+        CMP AL, 04H 		; check if key pressed is 4
+        JE KEY_D4
+        CMP AL, 05H 		; check if key pressed is 5
+        JE KEY_D5
+        CMP AL, 06H 		; check if key pressed is 6
+        JE KEY_D6
+        CMP AL, 08H 		; check if key pressed is 7
+        JE KEY_D7
+        CMP AL, 09H 		; check if key pressed is 8
+        JE KEY_D8
+        CMP AL, 0AH 		; check if key pressed is 9
+        JE KEY_D9
+        JMP CHECK_DAVBL
+
+    FINAL_CHECK_DAVBL:
+        CALL CLOCK_TIME
+        MOV DX, PORTC
+        IN AL, DX
+        AND AL, 0FH
+        CMP AL, 0EH 		; check if key pressed is #
+        JE BACK
+        CMP AL, 00H 		; check if key pressed is 1
+        JE TURN_ON
+        CMP AL, 01H 		; check if key pressed is 2
+        JE TURN_OFF
+        JMP FINAL_CHECK_DAVBL
+
+    ; helpers
+        KEY_BACKSPACE:
+            CMP HELPER, 9DH
+            JE DOUBLE_BACKSPACE
+            DEC HELPER
+            JMP CONT3
+            DOUBLE_BACKSPACE:
+            DEC HELPER
+            DEC HELPER
+            CONT3:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, ' '
+            CALL DATA_CTRL
+            CALL DELAY_500MS
+            JMP CHECK_DAVBL
+        KEY_D0:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '0'
+            JMP CONT2
+        KEY_D1:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '1'
+            JMP CONT2
+        KEY_D2:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '2'
+            JMP CONT2
+        KEY_D3:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '3'
+            JMP CONT2
+        KEY_D4:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '4'
+            JMP CONT2
+        KEY_D5:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '5'
+            JMP CONT2
+        KEY_D6:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '6'
+            JMP CONT2
+        KEY_D7:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '7'
+            JMP CONT2
+        KEY_D8:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '8'
+            JMP CONT2
+        KEY_D9:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, '9'
+            JMP CONT2
+        DISP_COLON:
+            MOV AL, HELPER
+            CALL INST_CTRL
+            MOV AL, 3AH
+            JMP CONT2
+        CONT2:
+            CALL DATA_CTRL
+            CMP HELPER, 9AH
+            JE STORE_SCHED_HR_TENS
+            CMP HELPER, 9BH
+            JE STORE_SCHED_HR_ONES
+            CMP HELPER, 9DH
+            JE STORE_SCHED_MIN_TENS
+            CMP HELPER, 9EH
+            JE STORE_SCHED_MIN_ONES
+            CONT4:
+                INC HELPER
+                CALL DELAY_500MS
+                JMP CHECK_DAVBL
+        STORE_SCHED_HR_TENS:
+            CMP AT_SCHED_ROOM1_FLAG, 1
+            JE STORE_ROOM11
+            CMP AT_SCHED_ROOM2_FLAG, 1
+            JE STORE_ROOM21
+            CMP AT_SCHED_ROOM3_FLAG, 1
+            JE STORE_ROOM31
+            STORE_ROOM11:
+                MOV ROOM1_SCHED_HR_TENS, AL
+            JMP CONT4
+            STORE_ROOM21:
+                MOV ROOM2_SCHED_HR_TENS, AL
+            JMP CONT4
+            STORE_ROOM31:
+                MOV ROOM3_SCHED_HR_TENS, AL
+            JMP CONT4
+        STORE_SCHED_HR_ONES:
+            CMP AT_SCHED_ROOM1_FLAG, 1
+            JE STORE_ROOM12
+            CMP AT_SCHED_ROOM2_FLAG, 1
+            JE STORE_ROOM22
+            CMP AT_SCHED_ROOM3_FLAG, 1
+            JE STORE_ROOM32
+            STORE_ROOM12:
+                MOV ROOM1_SCHED_HR_ONES, AL
+            JMP CONT4
+            STORE_ROOM22:
+                MOV ROOM2_SCHED_HR_ONES, AL
+            JMP CONT4
+            STORE_ROOM32:
+                MOV ROOM3_SCHED_HR_ONES, AL
+            JMP CONT4
+        STORE_SCHED_MIN_TENS:
+            CMP AT_SCHED_ROOM1_FLAG, 1
+            JE STORE_ROOM13
+            CMP AT_SCHED_ROOM2_FLAG, 1
+            JE STORE_ROOM23
+            CMP AT_SCHED_ROOM3_FLAG, 1
+            JE STORE_ROOM33
+            STORE_ROOM13:
+                MOV ROOM1_SCHED_MIN_TENS, AL
+            JMP CONT4
+            STORE_ROOM23:
+                MOV ROOM2_SCHED_MIN_TENS, AL
+            JMP CONT4
+            STORE_ROOM33:
+                MOV ROOM3_SCHED_MIN_TENS, AL
+            JMP CONT4
+        STORE_SCHED_MIN_ONES:
+            CMP AT_SCHED_ROOM1_FLAG, 1
+            JE STORE_ROOM14
+            CMP AT_SCHED_ROOM2_FLAG, 1
+            JE STORE_ROOM24
+            CMP AT_SCHED_ROOM3_FLAG, 1
+            JE STORE_ROOM34
+            STORE_ROOM14:
+                MOV ROOM1_SCHED_MIN_ONES, AL
+            JMP CONT4
+            STORE_ROOM24:
+                MOV ROOM2_SCHED_MIN_ONES, AL
+            JMP CONT4
+            STORE_ROOM34:
+                MOV ROOM3_SCHED_MIN_ONES, AL
+            JMP CONT4
+
     ; MODULE: Displays a 24-hour clock
     CLOCK_TIME:
         CALL DISPLAY_HOUR_TENS
@@ -316,7 +673,6 @@ START:
         CALL DISPLAY_MIN_ONES
         CALL UPDATE_TIME
     RET
-
     ; MODULE: Update the time
     UPDATE_TIME:
         CMP MIN_ONES_DIGIT, 3AH
@@ -331,7 +687,7 @@ START:
         JE RESET_HR_TENS
 
         INC MIN_ONES_DIGIT
-        CALL DELAY_1S
+        CALL DELAY_500MS
         RET
 
         RESET_MIN_ONES:
@@ -370,13 +726,70 @@ START:
         RET
     JMP UPDATE_TIME
 
-    ; MODULE: Rooms menu
+    ; MODULE: Checks if time sync with schedule time
+    CHECK_SCHEDULE:
+        MOV AL, HR_TENS_DIGIT
+        CMP AL, ROOM1_SCHED_HR_TENS
+        JE CHECK_HR_ONES
+        CMP AL, ROOM2_SCHED_HR_TENS
+        JE CHECK_HR_ONES
+        CMP AL, ROOM3_SCHED_HR_TENS
+        JE CHECK_HR_ONES
+        RET
+        CHECK_HR_ONES:
+            MOV AL, HR_ONES_DIGIT
+            CMP AL, ROOM1_SCHED_HR_ONES
+            JE CHECK_MIN_TENS
+            CMP AL, ROOM2_SCHED_HR_ONES
+            JE CHECK_MIN_TENS
+            CMP AL, ROOM3_SCHED_HR_ONES
+            JE CHECK_MIN_TENS
+            RET
+        CHECK_MIN_TENS:
+            MOV AL, MIN_TENS_DIGIT
+            CMP AL, ROOM1_SCHED_MIN_TENS
+            JE CHECK_MIN_ONES
+            CMP AL, ROOM2_SCHED_MIN_TENS
+            JE CHECK_MIN_ONES
+            CMP AL, ROOM3_SCHED_MIN_TENS
+            JE CHECK_MIN_ONES
+            RET
+        CHECK_MIN_ONES:
+            MOV AL, MIN_ONES_DIGIT
+            CMP AL, ROOM1_SCHED_MIN_ONES
+            JE SCHEDULE_ROOM1
+            CMP AL, ROOM2_SCHED_MIN_ONES
+            JE SCHEDULE_ROOM2
+            CMP AL, ROOM3_SCHED_MIN_ONES
+            JE SCHEDULE_ROOM3
+            RET
+        SCHEDULE_ROOM1:
+            MOV AL, 08H
+            OUT PORTF, AL
+            MOV AL, 00H
+            OUT PORTF, AL
+        RET
+        SCHEDULE_ROOM2:
+            MOV AL, 10H
+            OUT PORTF, AL
+            MOV AL, 00H
+            OUT PORTF, AL
+        RET
+        SCHEDULE_ROOM3:
+            MOV AL, 20H
+            OUT PORTF, AL
+            MOV AL, 00H
+            OUT PORTF, AL
+        RET
+
+
+    ; MODULE: Menu, Rooms, Fans, Emergency, Scheduling controls
     ROOM1:
         MOV AT_ROOM_FLAG, 1
         MOV AT_ROOM1_FLAG, 1
         MOV AT_ROOM2_FLAG, 0
         MOV AT_ROOM3_FLAG, 0
-        MOV AT_ROOMS_FLAG, 0
+        MOV AT_SCHED_FLAG, 0
         MOV DX, PORTE
         MOV AL, 01H
         OUT DX, AL
@@ -418,7 +831,7 @@ START:
         MOV AT_ROOM1_FLAG, 0
         MOV AT_ROOM2_FLAG, 1
         MOV AT_ROOM3_FLAG, 0
-        MOV AT_ROOMS_FLAG, 0
+        MOV AT_SCHED_FLAG, 0
         MOV DX, PORTE
         MOV AL, 02H
         OUT DX, AL
@@ -460,7 +873,7 @@ START:
         MOV AT_ROOM1_FLAG, 0
         MOV AT_ROOM2_FLAG, 0
         MOV AT_ROOM3_FLAG, 1
-        MOV AT_ROOMS_FLAG, 0
+        MOV AT_SCHED_FLAG, 0
         MOV DX, PORTE
         MOV AL, 03H
         OUT DX, AL
@@ -497,36 +910,165 @@ START:
             LEA SI, FAN_ON_STR
             CALL DISPLAY_STR
             JMP CONT_ROOM3
-    ROOMALL:
-        MOV AT_ROOM_FLAG, 1
-        MOV AT_ROOMS_FLAG, 1
+    SCHEDULE:
+        MOV AT_ROOM_FLAG, 0
+        MOV AT_SCHED_FLAG, 1
         MOV AT_ROOM1_FLAG, 0
         MOV AT_ROOM2_FLAG, 0
         MOV AT_ROOM3_FLAG, 0
         CALL INIT_LCD
         MOV AL, 080H
-        LEA SI, ROOMALL_STR
+        LEA SI, SCHED_STR
         CALL DISPLAY_STR
         MOV AL, 0C0H
-        LEA SI, ROOM1_FANS_STR
+        LEA SI, MENU1_STR
         CALL DISPLAY_STR
         MOV AL, 094H
-        LEA SI, ROOM2_FANS_STR
+        LEA SI, MENU2_STR
         CALL DISPLAY_STR
         MOV AL, 0D4H
-        LEA SI, ROOM3_FANS_STR
+        LEA SI, MENU3_STR
         CALL DISPLAY_STR
-        JMP CONT
+        CALL DELAY_1MS
+        JMP SCHEDULE_CHECK_DAVBL
     BACK:
         MOV AT_ROOM_FLAG, 0
         MOV AT_ROOM1_FLAG, 0
         MOV AT_ROOM2_FLAG, 0
         MOV AT_ROOM3_FLAG, 0
-        MOV AT_ROOMS_FLAG, 0
+        MOV AT_SCHED_FLAG, 0
         MOV AL, 00H
         OUT PORTE, AL
         OUT PORTG, AL
         JMP HERE
+    SCHED_ROOM1:
+        MOV AT_SCHED_ROOM1_FLAG, 1
+        MOV AL, 0C0H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 094H
+        CALL INST_CTRL
+        LEA SI, SCHED_TIME_STR
+        CALL DISPLAY_STR
+        MOV AL, 09AH
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 0D4H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 9CH
+        CALL INST_CTRL
+        MOV AL, 3AH
+        CALL DATA_CTRL
+        CALL DELAY_1MS
+        JMP CHECK_DAVBL
+    SCHED_ROOM2:
+        MOV AT_SCHED_ROOM2_FLAG, 1
+        MOV AL, 0C0H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 094H
+        CALL INST_CTRL
+        LEA SI, SCHED_TIME_STR
+        CALL DISPLAY_STR
+        MOV AL, 09AH
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 0D4H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 9CH
+        CALL INST_CTRL
+        MOV AL, 3AH
+        CALL DATA_CTRL
+        CALL DELAY_1MS
+        JMP CHECK_DAVBL
+    SCHED_ROOM3:
+        MOV AT_SCHED_ROOM3_FLAG, 1
+        MOV AL, 0C0H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 094H
+        CALL INST_CTRL
+        LEA SI, SCHED_TIME_STR
+        CALL DISPLAY_STR
+        MOV AL, 09AH
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 0D4H
+        CALL INST_CTRL
+        LEA SI, CLEAR_TOP
+        CALL DISPLAY_STR
+        MOV AL, 9CH
+        CALL INST_CTRL
+        MOV AL, 3AH
+        CALL DATA_CTRL
+        CALL DELAY_1MS
+        JMP CHECK_DAVBL
+    CONIRM_SCHEDULE:
+        MOV AL, 0C0H
+        CALL INST_CTRL
+        LEA SI, TURN_ON_STR
+        CALL DISPLAY_STR
+        MOV AL, 094H
+        CALL INST_CTRL
+        LEA SI, TURN_OFF_STR
+        CALL DISPLAY_STR
+        JMP FINAL_CHECK_DAVBL
+    TURN_ON:
+        CMP AT_SCHED_ROOM1_FLAG, 1
+        JE CONFIRM_ROOM1_ON_SCHED
+        CMP AT_SCHED_ROOM2_FLAG, 1
+        JE CONFIRM_ROOM2_ON_SCHED
+        CMP AT_SCHED_ROOM3_FLAG, 1
+        JE CONFIRM_ROOM3_ON_SCHED
+        JMP BACK
+        CONFIRM_ROOM1_ON_SCHED:
+            MOV ROOM1_SCHED_ON_FLAG, 1
+            MOV ROOM1_SCHED_OFF_FLAG, 0
+            MOV HELPER, 9AH
+            JMP BACK
+        CONFIRM_ROOM2_ON_SCHED:
+            MOV ROOM2_SCHED_ON_FLAG, 1
+            MOV ROOM2_SCHED_OFF_FLAG, 0
+            MOV HELPER, 9AH
+            JMP BACK
+        CONFIRM_ROOM3_ON_SCHED:
+            MOV ROOM3_SCHED_ON_FLAG, 1
+            MOV ROOM3_SCHED_OFF_FLAG, 0
+            MOV HELPER, 9AH
+            JMP BACK
+    TURN_OFF:
+        CMP AT_SCHED_ROOM1_FLAG, 1
+        JE CONFIRM_ROOM1_OFF_SCHED
+        CMP AT_SCHED_ROOM2_FLAG, 1
+        JE CONFIRM_ROOM2_OFF_SCHED
+        CMP AT_SCHED_ROOM3_FLAG, 1
+        JE CONFIRM_ROOM3_OFF_SCHED
+        JMP BACK
+        CONFIRM_ROOM1_OFF_SCHED:
+            MOV ROOM1_SCHED_ON_FLAG, 0
+            MOV ROOM1_SCHED_OFF_FLAG, 1
+            MOV HELPER, 9AH
+            JMP BACK
+        CONFIRM_ROOM2_OFF_SCHED:
+            MOV ROOM2_SCHED_ON_FLAG, 0
+            MOV ROOM2_SCHED_OFF_FLAG, 1
+            MOV HELPER, 9AH
+            JMP BACK
+        CONFIRM_ROOM3_OFF_SCHED:
+            MOV ROOM3_SCHED_ON_FLAG, 0
+            MOV ROOM3_SCHED_OFF_FLAG, 1
+            MOV HELPER, 9AH
+            JMP BACK
     FIRST_FAN:
         CMP AT_ROOM1_FLAG, 1
         JE AT_ROOM1_1
@@ -534,7 +1076,7 @@ START:
         JE AT_ROOM2_1
         CMP AT_ROOM3_FLAG, 1
         JE AT_ROOM3_1
-        CMP AT_ROOMS_FLAG, 1
+        CMP AT_SCHED_FLAG, 1
         JE AT_ROOMS
         JMP CONT
         AT_ROOM1_1:
@@ -1012,7 +1554,7 @@ START:
             JE ROOM02
             CMP AT_ROOM3_FLAG, 1
             JE ROOM03
-            CMP AT_ROOMS_FLAG, 1
+            CMP AT_SCHED_FLAG, 1
             JE ROOMS
             JMP CONT1
 
@@ -1176,8 +1718,6 @@ START:
         JNZ TIMER_CTRL
     RET
 
-
-    ; MODULE: Timer
     DELAY_1S:
         MOV DX, PORT_T	; access 8253 timer
         MOV AL, 0A0H
@@ -1193,6 +1733,11 @@ START:
             JNE LOCK_INPUT
     RET
 
+    DELAY_500MS:  MOV CX, 25
+    L2:
+        CALL DELAY_1MS
+        LOOP L2
+        RET
 
     DELAY_1MS:  MOV BX, 02CAH
     L1:
